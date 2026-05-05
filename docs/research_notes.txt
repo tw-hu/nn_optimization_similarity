@@ -1,0 +1,14 @@
+Goal: to understand the effect of optimization on the landscape of trained neural networks
+
+Data:
+- CIFAR-10. Can be learned to around 75% accuracy with shallow CNN.
+
+Meaning of "effect of optimization." What should we change?
+- We will fix the architecture. Shallow CNN. Define cnn_block = (conv-relu-pool):
+    cnn_block-cnn_block-cnn_block-flatten-dense-dense-softmax
+- We will fix the overall optimizer: AdamW, which features decay rates for gradient moments + weight decay
+
+- Hyperparameters to tune
+    - Obvious: learning rate. should have a big effect on trained classifier
+    - Less obvious: fixing lr and weight_decay, vary \beta_1, \beta_2
+    - What is the space of trained networks?
