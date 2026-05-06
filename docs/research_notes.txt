@@ -12,3 +12,7 @@ Meaning of "effect of optimization." What should we change?
     - Obvious: learning rate. should have a big effect on trained classifier
     - Less obvious: fixing lr and weight_decay, vary \beta_1, \beta_2
     - What is the space of trained networks?
+
+Notes:
+- Data split: train, val, test
+    - Val set will also be used to compute NN representation vectors

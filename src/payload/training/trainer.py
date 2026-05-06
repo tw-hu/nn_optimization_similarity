@@ -1,4 +1,4 @@
-"""Convnet training loop
+"""Trainer class
 
 """
 import logging
