@@ -18,10 +18,16 @@ DATA_DIR = "./data"
 
 SEED = 0
 
-def save_split(data: Dataset, root: str | Path, split_name: str):
+def save_split(data: Dataset | Subset, root: str | Path, split_name: str):
     if split_name not in ["train", "val", "test"]:
         raise ValueError("split_name must be 'train', 'val', or 'test'")
-    classes = data.classes
+    
+    if isinstance(data, Subset):
+        dataset = data.dataset
+    else:
+        dataset = data  
+    classes = dataset.classes
+
     root = Path(root) / split_name
 
     for i, (img, label_idx) in enumerate(data):
@@ -44,7 +50,7 @@ def main():
     full_train_dataset = torchvision.datasets.CIFAR10(root = data_dir, train = True, download = True)
     test_dataset = torchvision.datasets.CIFAR10(root = data_dir, train = False, download = True)
 
-    indices = np.random.permutation(len(train_dataset))
+    indices = np.random.permutation(len(full_train_dataset))
     train_idx = indices[:NUM_TRAIN]
     val_idx = indices[NUM_TRAIN:]
 
