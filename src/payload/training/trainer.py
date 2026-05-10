@@ -4,6 +4,7 @@
 import logging
 import time
 from pathlib import Path
+from collections.abc import Callable
 
 import torch
 from torch import nn
@@ -21,6 +22,7 @@ class Trainer:
     
     Keyword arguments:
     amp -- use automatic mixed precision for computing gradient (default: True)
+    save_every -- interval (epochs) at which the model and optimizer weights are saved (default: 1)
     on_epoch_end -- execute custom logic after each epoch (default: None)
     """
     def __init__(
@@ -35,6 +37,7 @@ class Trainer:
         output_dir: Path,
         amp: bool = True,
         log_every: int = 50,
+        save_every: int = 1, # implement this !
         on_epoch_end: Callable[[int, dict[str, float]], None] | None = None
     ) -> None:
         self.model = model.to(device)

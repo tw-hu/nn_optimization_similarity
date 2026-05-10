@@ -12,7 +12,14 @@ Meaning of "effect of optimization." What should we change?
     - Obvious: learning rate. should have a big effect on trained classifier
     - Less obvious: fixing lr and weight_decay, vary \beta_1, \beta_2
     - What is the space of trained networks?
+    - Think more about which hypers to vary between experiments
 
 Notes:
 - Data split: train, val, test
     - Val set will also be used to compute NN representation vectors
+- No dropout layers (adds randomness during training procedure, which we want to avoid).
+
+To do:
+- Implement save_every: we want to save the state of the NN over the course of the training process
+- Understand Hydra and create config files for experiments
+- Build optimizer and scheduler

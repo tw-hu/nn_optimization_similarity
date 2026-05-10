@@ -1,0 +1,31 @@
+seed: 0
+device: cuda
+
+data_dir: data
+experiment_name: ${training.optimizer}_optimizer${optimizer.optimizer}_beta1${optimizer.beta1}_beta2${optimizer.beta2}_seed${seed}
+## use a descriptive experiment name
+output_dir: experiments/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment_name}
+
+# Model
+model: 
+
+# Optimizer
+optimizer:
+  optimizer: adamw
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  momentum: 0.9
+
+# Training Parameters
+training:
+  batch_size: 32
+  epochs: 100
+  amp: True
+  log_every: 50
+
+# Weights and Biases (used for logging)
+wandb:
+  enabled: true
+  project: nn_optimization_similarity
+  mode: offline
+  tags: []

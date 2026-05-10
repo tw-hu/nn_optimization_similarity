@@ -7,7 +7,6 @@ from pathlib import Path
 import numpy as np
 import torch
 import torchvision
-from torchvision.datasets import CIFAR10
 from torch.utils.data import Dataset, Subset
 
 # CIFAR-10 has 50000 images

@@ -1,0 +1,8 @@
+optimizer: adamw
+lr: 1.0e-3
+weight_decay: 1.0e-4
+momentum: 0.9
+
+epochs: 100
+amp: true
+log_every: 50
