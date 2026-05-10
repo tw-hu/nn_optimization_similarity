@@ -9,7 +9,7 @@ import torch.nn as nn
 
 # O = floor((I - K + 2*P)/S) + 1
 
-def smallCNN(activation: nn.Module = nn.ReLU, activation_kwargs: dict = None): # for testing purposes
+def build_small_cnn(activation: nn.Module = nn.ReLU, activation_kwargs: dict = None): # for testing purposes
     model = nn.Sequential( # input: (bs, 3, 32, 32)
         nn.Conv2d(3, 8, 5, padding="full"), # (bs, 3, 32, 32)
         activation(**activation_kwargs),
@@ -20,7 +20,7 @@ def smallCNN(activation: nn.Module = nn.ReLU, activation_kwargs: dict = None): #
     )
     return model
 
-def largeCNN(activation: nn.Module = nn.ReLU, activation_kwargs: dict = None):
+def build_large_cnn(activation: nn.Module = nn.ReLU, activation_kwargs: dict = None):
     model = nn.Sequential( # input: (bs, 3, 32, 32)
         nn.Sequential(
             nn.Conv2d(3, 24, 3, padding="same"), # (bs, 24, 32, 32)
@@ -74,7 +74,7 @@ class ConvClassifier(nn.Module):
     """
     def __init__(
         self,
-        conv_model: nn.Module = smallCNN,
+        conv_model: nn.Module = build_small_cnn(),
         fc_model: nn.Module = build_mlp([1024, 10])
     ):
         self._conv_model = conv_model

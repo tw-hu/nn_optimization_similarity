@@ -26,20 +26,20 @@ class Trainer:
     on_epoch_end -- execute custom logic after each epoch (default: None)
     """
     def __init__(
-        self,
-        model: nn.Module,
-        optimizer: Optimizer,
-        scheduler: LRScheduler | None,
-        train_loader: DataLoader,
-        val_loader: DataLoader,
-        device: torch.device,
-        epochs: int,
-        output_dir: Path,
-        amp: bool = True,
-        log_every: int = 50,
-        save_every: int = 1, # implement this !
-        on_epoch_end: Callable[[int, dict[str, float]], None] | None = None
-    ) -> None:
+            self,
+            model: nn.Module,
+            optimizer: Optimizer,
+            scheduler: LRScheduler | None,
+            train_loader: DataLoader,
+            val_loader: DataLoader,
+            device: torch.device,
+            epochs: int,
+            output_dir: Path,
+            amp: bool = True,
+            log_every: int = 50,
+            save_every: int = 1, # implement this !
+            on_epoch_end: Callable[[int, dict[str, float]], None] | None = None
+        ) -> None:
         self.model = model.to(device)
         self.optimizer = optimizer
         self.scheduler = scheduler
