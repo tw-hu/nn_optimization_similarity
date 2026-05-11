@@ -1,9 +1,12 @@
+"""Simple scripts used for training"""
+
 import torch
-import torch.nn as nn
-from torch.optim import AdamW
+from torch import nn
+# from torch.optim import AdamW
+from adam_atan2 import AdamATan2
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-def build_adamw(
+def build_optimizer(
         model: nn.Module,
         lr: float,
         weight_decay: float,
@@ -27,7 +30,7 @@ def build_adamw(
         {"params": no_decay, "weight_decay": 0.0}
     ]
     
-    return AdamW(hypers, lr=lr, betas=betas)
+    return AdamATan2(hypers, lr=lr, betas=betas)
 
 @torch.no_grad()
 def accuracy(preds: torch.Tensor, labels: torch.Tensor, topk: tuple[int] = (1, 5)):

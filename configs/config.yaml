@@ -9,7 +9,7 @@ num_workers: 1
 
 # Data
 data_dir: data
-experiment_name: ${mode.mode}mode_run_beta1${optimizer.beta1}_beta2${optimizer.beta2}_seed${seed}
+experiment_name: ${mode.mode}mode_run_batchsize${mode.training.batch_size}_epochs${mode.training.num_epochs}_beta1${optimizer.beta1}_beta2${optimizer.beta2}_seed${seed}
 output_dir: experiments/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment_name}
 data:
   seed: 0

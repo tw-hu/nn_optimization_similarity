@@ -2,11 +2,9 @@
 
 Usage:
 
-Single run:
-    python scripts/train.py training.lr=0.05 training.beta1=0.05 training.beta2=0.05
-
-Multi-run:
-    python scripts/train.py -m\
+1. Configure configs/config.yaml file
+2. Single run:
+    python scripts/train.py
 """
 import json
 import logging
@@ -20,7 +18,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from payload.data.cifar10 import build_cifar, build_dataloader
 from payload.training.ConvTrainer import ConvTrainer
-from payload.training.optim import build_adamw
+from payload.training.optim import build_optimizer
 from payload.models.ConvClassifier import ConvClassifier, build_small_cnn, build_large_cnn, build_mlp
 from payload.utils.utils import set_seed
 
@@ -61,7 +59,7 @@ def main(cfg: DictConfig):
         fc_model = build_mlp([1024, 128, 10], act="relu")
     model = ConvClassifier(conv_model, fc_model)
 
-    optimizer = build_adamw(
+    optimizer = build_optimizer(
         model,
         lr=cfg.optimizer.lr,
         weight_decay=cfg.optimizer.weight_decay,
