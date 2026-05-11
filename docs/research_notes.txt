@@ -7,6 +7,10 @@ Meaning of "effect of optimization." What should we change?
 - We will fix the architecture. Shallow CNN. Define cnn_block = (conv-relu-pool):
     cnn_block-cnn_block-cnn_block-flatten-dense-dense-softmax
 - We will fix the overall optimizer: AdamW, which features decay rates for gradient moments + weight decay
+- Why PWCCA? Why not direct comparison of weights or activations? A: It is not guaranteed (in fact, not expected)
+that two identical NNs (even under the same ordering of training data) will converge to networks with similar
+weights. Rather, what we might expect is that the *representations* that the layers are learning are similar.
+This can be quantified by using canonical correlations between layers, rather than say, the Frobenius distance.
 
 - Hyperparameters to tune
     - Obvious: learning rate. should have a big effect on trained classifier

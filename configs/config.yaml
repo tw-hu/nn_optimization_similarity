@@ -1,33 +1,26 @@
+defaults:
+  - mode: train # dev or train
+  - optimizer: adamw
+  - _self_
+
 seed: 0
 device: cuda
+num_workers: 1
 
 # Data
 data_dir: data
-experiment_name: ${training.optimizer}_optimizer${optimizer.optimizer}_beta1${optimizer.beta1}_beta2${optimizer.beta2}_seed${seed}## use a descriptive experiment name
+experiment_name: ${mode.mode}mode_run_beta1${optimizer.beta1}_beta2${optimizer.beta2}_seed${seed}
 output_dir: experiments/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment_name}
 data:
   seed: 0
-
-
-# Optimizer
-## relegate to subdir?
-adamw:
-  name: "adamw"
-  lr: 1.0e-3
-  weight_decay: 1.0e-4
-  momentum: 0.9
-
-# Training Parameters
-training:
-  batch_size: 32
-  epochs: 100
-  scheduler:
-  amp: True
-  log_every: 50
 
 # Weights and Biases (used for logging)
 wandb:
   enabled: true
   project: nn_optimization_similarity
   mode: offline
-  tags: []
+
+# Hydra (used for output)
+hydra:
+  run:
+    dir: ${output_dir}

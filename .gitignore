@@ -1,5 +1,7 @@
 # Files
-data
+/data/
+/outputs/
+/experiments/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

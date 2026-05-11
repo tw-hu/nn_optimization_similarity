@@ -17,7 +17,7 @@ from .optim import accuracy
 
 logger = logging.getLogger(__name__)
 
-class Trainer:
+class ConvTrainer:
     """Trainer class handles training and saving models
     
     Keyword arguments:
@@ -37,7 +37,7 @@ class Trainer:
             output_dir: Path,
             amp: bool = True,
             log_every: int = 50,
-            save_every: int = 1, # implement this !
+            save_every: int = 5,
             on_epoch_end: Callable[[int, dict[str, float]], None] | None = None
         ) -> None:
         self.model = model.to(device)
@@ -48,11 +48,11 @@ class Trainer:
         self.device = device
         self.epochs = epochs
         self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
         self.amp = amp and device.type == "cuda"
         self.scaler = GradScaler(enabled=self.amp)
         self.criterion = nn.CrossEntropyLoss()
         self.log_every = log_every
+        self.save_every = save_every
         self.on_epoch_end = on_epoch_end
 
     def fit(self):
@@ -74,9 +74,11 @@ class Trainer:
                 self.on_epoch_end(epoch, metrics)
             if val_metrics["val/top1"] > best_top1:
                 best_top1 = val_metrics["val/top1"]
-                self._save("best.pt", epoch, metrics)
+                self._save("best.pt", self.output_dir, epoch, metrics)
+            if epoch % self.save_every:
+                self._save(f"epoch_{epoch}.pt", self.output_dir / "intermediate", epoch, metrics)
         
-        self._save("final.pt", self.epochs - 1, metrics)
+        self._save("final.pt", self.output_dir, self.epochs - 1, metrics)
         return metrics
 
     def _train_one_epoch(self, curr_epoch: int):
@@ -100,7 +102,7 @@ class Trainer:
             batch_size = x.size(0)
             total_loss += loss.item() * batch_size
             n += batch_size
-            if step % step.log_energy == 0:
+            if step % self.log_every == 0:
                 logger.info(
                     "epoch %d step %d loss=%.4f lr %.4g",
                     curr_epoch,
@@ -143,10 +145,12 @@ class Trainer:
             "val/top5": total_acc_t5 / max(n, 1)
         }
 
-    def _save(self, name: str, epoch: int, metrics: dict[str, float]):
+    def _save(self, name: str, dir: str | Path, epoch: int, metrics: dict[str, float]):
         """saves model weights and trainer state"""
-        
-        path = self.output_dir / name
+        # path = self.output_dir / name
+        dir.mkdir(parents=True, exist_ok=True)
+        path = Path(dir) / name
+
         torch.save(
             {
                 "model_state": self.model.state_dict(),

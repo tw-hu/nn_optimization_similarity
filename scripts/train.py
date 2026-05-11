@@ -13,20 +13,20 @@ import logging
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, ImageFolder
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import hydra
 import wandb
 from omegaconf import DictConfig, OmegaConf
 
-from payload.data import build_cifar
-from payload.training import Trainer, build_adamw, cifar_transform
-from payload.models import ConvClassifier, build_small_cnn, build_large_cnn, build_mlp
-from payload.utils import set_seed
+from payload.data.cifar10 import build_cifar, build_dataloader
+from payload.training.ConvTrainer import ConvTrainer
+from payload.training.optim import build_adamw
+from payload.models.ConvClassifier import ConvClassifier, build_small_cnn, build_large_cnn, build_mlp
+from payload.utils.utils import set_seed
 
 logger = logging.getLogger(__name__)
 
-@hydra.main(version_base=None, config_path="configs", config_name="config")
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
     set_seed(cfg.seed)
     output_dir = Path(cfg.output_dir)
@@ -44,52 +44,55 @@ def main(cfg: DictConfig):
         )
 
     # Data
-    train_set = build_cifar(Path(cfg.data_dir), "train")
-    train_loader = DataLoader(train_set, batch_size=cfg.training.batch_size, seed=cfg.loader.seed)
+    train_set = build_cifar(Path(cfg.data_dir), "train", mode=cfg.mode.mode)
+    train_loader = build_dataloader(train_set, batch_size=cfg.mode.training.batch_size, num_workers=cfg.num_workers, seed=cfg.data.seed)
 
-    val_set = build_cifar(Path(cfg.data_dir), "val")
-    val_loader = DataLoader(val_set, batch_size=cfg.training.batch_size, seed=cfg.loader.seed)
+    val_set = build_cifar(Path(cfg.data_dir), "val", mode=cfg.mode.mode)
+    val_loader = build_dataloader(val_set, batch_size=cfg.mode.training.batch_size, num_workers=cfg.num_workers, seed=cfg.data.seed)
 
     # Model + optimizer
     device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
 
-    act_kwargs = {"inplace": True}
-    conv_model = build_small_cnn(activation="relu", **act_kwargs)
-    fc_model = build_mlp([1024, 10])
-    model = ConvClassifier(
-        conv_model,
-        fc_model
-    )
+    if cfg.mode.mode == "dev":
+        conv_model = build_small_cnn(act="relu")
+        fc_model = build_mlp([128, 10], act="relu")
+    else:
+        conv_model = build_large_cnn(act="relu")
+        fc_model = build_mlp([1024, 128, 10], act="relu")
+    model = ConvClassifier(conv_model, fc_model)
+
     optimizer = build_adamw(
         model,
-        name=cfg.optimizer.optimizer,
         lr=cfg.optimizer.lr,
         weight_decay=cfg.optimizer.weight_decay,
-        betas=cfg.optimizer.betas
+        betas=(cfg.optimizer.beta1, cfg.optimizer.beta2)
     )
-    scheduler = CosineAnnealingLR(optimizer, T_max=cfg.training.epochs)
+    scheduler = CosineAnnealingLR(optimizer, T_max=cfg.mode.training.epochs)
 
     # Training loop
     def on_epoch_end(epoch: int, metrics: dict) -> None:
         if wandb_run is not None:
             wandb.log(metrics, step=epoch)
 
-    trainer = Trainer(
+    trainer = ConvTrainer(
         model=model,
         optimizer=optimizer,
         scheduler=scheduler,
         train_loader=train_loader,
         val_loader=val_loader,
         device=device,
-        epochs=cfg.epochs,
+        epochs=cfg.mode.training.epochs,
         output_dir=output_dir,
-        amp=cfg.training.amp,
-        log_every=cfg.log_every,
+        amp=cfg.mode.training.amp,
+        log_every=cfg.mode.training.log_every,
         on_epoch_end=on_epoch_end
     )
     metrics = trainer.fit()
 
-    # Save models
+    if wandb_run is not None:
+        wandb.summary.update(metrics)
+        wandb.finish()
+    return float(metrics["val/top1"])
 
 if __name__ == "__main__":
     main()

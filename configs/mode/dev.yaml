@@ -1,0 +1,8 @@
+mode: dev
+
+training:
+  batch_size: 32
+  epochs: 10
+  amp: True
+  log_every: 100
+  save_every: 5
