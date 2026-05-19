@@ -8,64 +8,123 @@ import numpy as np
 import torch
 from torch import nn
 
-def get_activation(activation: str = "relu"):
-    activations = {
-        'relu': nn.ReLU,
-        'sigmoid': nn.Sigmoid,
-        'tanh': nn.Tanh,
-    }
-    if activation.lower() not in activations:
-        raise ValueError("Activation must be one of 'relu', 'sigmoid', or 'tanh'")
-    return activations[activation.lower()]
+# def get_activation(activation: str = 'relu'):
+#     activations = {
+#         'relu': nn.ReLU,
+#         'sigmoid': nn.Sigmoid,
+#         'tanh': nn.Tanh,
+#     }
+#     if activation.lower() not in activations:
+#         raise ValueError("Activation must be one of 'relu', 'sigmoid', or 'tanh'")
+#     return activations[activation.lower()]
 
 # O = floor((I - K + 2*P)/S) + 1
-
-def build_small_cnn(act: str = "relu"): # for testing purposes
-    activation = get_activation(act)
-    model = nn.Sequential(OrderedDict([ # input: (bs, 3, 32, 32)
-        ("conv1", nn.Conv2d(3, 16, 3, padding="same")), # (bs, 16, 32, 32)
-        ("relu1", activation()),
-        ("pool1", nn.MaxPool2d(4, 4)), # (bs, 16, 8, 8)
-        ("conv2", nn.Conv2d(16, 32, 3, padding="same")), # (bs, 32, 8, 8)
-        ("relu2", activation()),
-        ("pool2", nn.MaxPool2d(4, 4))# (bs, 32, 2, 2)
+def build_conv_encoder():
+    # activation = get_activation(act)
+    model = nn.Sequential(OrderedDict([ # (bs, 3, 32, 32)
+        ("enc_block1", nn.Sequential(
+            OrderedDict([
+                ("conv1_1", nn.Conv2d(3, 64, 3, padding=1)), # (bs, 64, 32, 32)
+                ("bnor1_1", nn.BatchNorm2d(64)),
+                ("relu1_1", nn.ReLU(inplace=True)),
+                ("conv1_2", nn.Conv2d(64, 64, 3, padding=1)), # (bs, 64, 32, 32)
+                ("bnor1_2", nn.BatchNorm2d(64)),
+                ("relu1_2", nn.ReLU(inplace=True)),
+            ])
+        )),
+        ("enc_block2", nn.Sequential(
+            OrderedDict([
+                ("conv2_1", nn.Conv2d(64, 128, 3, padding=1, stride=2)), # (bs, 128, 16, 16)
+                ("bnor2_1", nn.BatchNorm2d(128)),
+                ("relu2_1", nn.ReLU(inplace=True)),
+                ("conv2_2", nn.Conv2d(128, 128, 3, padding=1)), # (bs, 128, 16, 16)
+                ("bnor2_2", nn.BatchNorm2d(128)),
+                ("relu2_2", nn.ReLU(inplace=True)),
+                ("conv2_3", nn.Conv2d(128, 128, 3, padding=1)), # (bs, 128, 16, 16)
+                ("bnor2_3", nn.BatchNorm2d(128)),
+                ("relu2_3", nn.ReLU(inplace=True))
+            ])
+        )),
+        ("enc_block3", nn.Sequential(
+            OrderedDict([
+                ("conv3_1", nn.Conv2d(128, 256, 3, padding=1, stride=2)), # (bs, 256, 8, 8)
+                ("bnor3_1", nn.BatchNorm2d(256)),
+                ("relu3_1", nn.ReLU(inplace=True)),
+                ("conv3_2", nn.Conv2d(256, 256, 3, padding=1)), # (bs, 256, 8, 8)
+                ("bnor3_2", nn.BatchNorm2d(256)),
+                ("relu3_2", nn.ReLU(inplace=True)),
+                ("conv3_3", nn.Conv2d(256, 256, 3, padding=1)), # (bs, 256, 8, 8)
+                ("bnor3_3", nn.BatchNorm2d(256)),
+                ("relu3_3", nn.ReLU(inplace=True))
+            ])
+        )),
+        ("enc_block4", nn.Sequential(
+            OrderedDict([
+                ("conv4_1", nn.Conv2d(256, 512, 3, padding=1, stride=2)), # (bs, 512, 4, 4)
+                ("bnor4_1", nn.BatchNorm2d(512)),
+                ("relu4_1", nn.ReLU(inplace=True)),
+                ("conv4_2", nn.Conv2d(512, 512, 3, padding=1)), # (bs, 512, 4, 4)
+                ("bnor4_2", nn.BatchNorm2d(512)),
+                ("relu4_2", nn.ReLU(inplace=True)),
+                ("conv4_3", nn.Conv2d(512, 512, 3, padding=1)), # (bs, 512, 4, 4)
+                ("bnor4_3", nn.BatchNorm2d(512)),
+                ("relu4_3", nn.ReLU(inplace=True))
+            ])
+        ))
     ]))
     return model
 
-def build_large_cnn(act: str = "relu"):
-    activation = get_activation(act)
-    model = nn.Sequential(OrderedDict([ # input: (bs, 3, 32, 32)
-        ("conv_block1", nn.Sequential(
+def build_conv_decoder():
+    # activation = get_activation(act)
+    model = nn.Sequential(OrderedDict([ # (bs, 512, 3, 3)
+        ("dec_block1", nn.Sequential(
             OrderedDict([
-                ("conv1", nn.Conv2d(3, 24, 3, padding="same")), # (bs, 24, 32, 32)
-                ("actv1", activation())
+                ("conv5_1", nn.ConvTranspose2d(512, 512, 3, padding=1)), # (bs, 512, 3, 3)
+                ("bnor5_1", nn.BatchNorm2d(512)),
+                ("relu5_1", nn.ReLU(inplace=True)),
+                ("conv5_2", nn.ConvTranspose2d(512, 512, 3, padding=1)), # (bs, 512, 3, 3)
+                ("bnor5_2", nn.BatchNorm2d(512)),
+                ("relu5_2", nn.ReLU(inplace=True)),
+                ("conv5_3", nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1, output_padding=1)), # (bs, 256, 7, 7)
+                ("bnor5_3", nn.BatchNorm2d(256)),
+                ("relu5_3", nn.ReLU(inplace=True))
             ])
         )),
-        ("conv_block2", nn.Sequential(
+        ("dec_block2", nn.Sequential(
             OrderedDict([
-                ("conv2", nn.Conv2d(24, 64, 3, padding="same")), # (bs, 64, 32, 32)
-                ("pool2", nn.MaxPool2d(2, 2)), # (bs, 64, 16, 16)
-                ("bnor2", nn.BatchNorm2d(64)),
-                ("actv2", activation()),
-                ("conv3", nn.Conv2d(64, 128, 3, padding="same")), # (bs, 128, 16, 16)
-                ("pool3", nn.MaxPool2d(2, 2)), # (bs, 128, 8, 8)
-                ("bnor3", nn.BatchNorm2d(128)),
-                ("actv3", activation())
+                ("conv6_1", nn.ConvTranspose2d(256, 256, 3, padding=1)), # (bs, 256, 7, 7)
+                ("bnor6_1", nn.BatchNorm2d(256)),
+                ("relu6_1", nn.ReLU(inplace=True)),
+                ("conv6_2", nn.ConvTranspose2d(256, 256, 3, padding=1)), # (bs, 256, 7, 7)
+                ("bnor6_2", nn.BatchNorm2d(256)),
+                ("relu6_2", nn.ReLU(inplace=True)),
+                ("conv6_3", nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1)), # (bs, 256, 7, 7)
+                ("bnor6_3", nn.BatchNorm2d(128)),
+                ("relu6_3", nn.ReLU(inplace=True))
             ])
         )),
-        ("conv_block3", nn.Sequential(
+        ("dec_block3", nn.Sequential(
             OrderedDict([
-                ("conv4", nn.Conv2d(128, 256, 3, padding="same")), # (bs, 256, 8, 8)
-                ("pool4", nn.MaxPool2d(2, 2)), # (bs, 256, 4, 4)
-                ("bnor4", nn.BatchNorm2d(256)),
-                ("actv4", activation()),
-                ("conv5", nn.Conv2d(256, 256, 3, padding="same")), # (bs, 256, 4, 4)
-                ("pool5", nn.MaxPool2d(2, 2)), # (bs, 256, 2, 2)
-                ("bnor5", nn.BatchNorm2d(256)),
-                ("actv5", activation())
+                ("conv7_1", nn.ConvTranspose2d(128, 128, 3, padding=1)), # (bs, 512, 3, 3)
+                ("bnor7_1", nn.BatchNorm2d(128)),
+                ("relu7_1", nn.ReLU(inplace=True)),
+                ("conv7_2", nn.ConvTranspose2d(128, 128, 3, padding=1)),
+                ("bnor7_2", nn.BatchNorm2d(128)),
+                ("relu7_2", nn.ReLU(inplace=True)),
+                ("conv7_3", nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, output_padding=1)),
+                ("bnor7_3", nn.BatchNorm2d(64)),
+                ("relu7_3", nn.ReLU(inplace=True))
             ])
-        ))])
-    )
+        )),
+        ("dec_block4", nn.Sequential(
+            OrderedDict([
+                ("conv8_1", nn.ConvTranspose2d(64, 64, 3, padding=1)), # (bs, 64, 32, 32)
+                ("bnor8_1", nn.BatchNorm2d(64)),
+                ("relu8_1", nn.ReLU(inplace=True)),
+                ("conv8_2", nn.ConvTranspose2d(64, 3, 3, padding=1)), # (bs, 64, 32, 32)
+            ])
+        ))
+    ]))
     return model
 
 def build_mlp(layer_dims: list[int], act: str = "relu"):
@@ -78,39 +137,42 @@ def build_mlp(layer_dims: list[int], act: str = "relu"):
             layers[f"fc_actv{l}"] = activation()
     return nn.Sequential(layers)
 
-class ConvClassifier(nn.Module):
-    """ConvClassifier class is the wrapper for Conv and FC layers
-    
-    Keyword arguments:
-    """
+def build_model():
+    enc_model = build_conv_encoder()
+    dec_model = build_conv_decoder()
+    return ConvAutoencoder(enc_model, dec_model)
+
+class ConvAutoencoder(nn.Module):
+    """ConvAutoencoder class is the wrapper for convolutional encoder and decoder layers"""
+
     def __init__(
         self,
-        conv_model: nn.Module = build_small_cnn(),
-        fc_model: nn.Module = build_mlp([1024, 10])
+        enc_model: nn.Module,
+        dec_model: nn.Module
     ):
         super().__init__()
-        self._conv_model = conv_model
-        self._fc_model = fc_model
+        self._enc_model = enc_model
+        self._dec_model = dec_model
 
     def forward(self, x):
-        r = self.conv_model(x).flatten(1)
-        return self.fc_model(r)
+        r = self._enc_model(x)
+        return self._dec_model(r)
     
-    def load_conv_weights(self, conv_weights: OrderedDict) -> None:
-        self._assert_state_dict(self._conv_model, conv_weights)
-        self._conv_model.load_state_dict(conv_weights)
+    def load_enc_weights(self, enc_weights: OrderedDict) -> None:
+        self._assert_state_dict(self._enc_model, enc_weights)
+        self._enc_model.load_state_dict(enc_weights)
 
-    def load_fc_weights(self, fc_weights: OrderedDict) -> None:
-        self._assert_state_dict(self._fc_model, fc_weights)
-        self._fc_model.load_state_dict(fc_weights)
+    def load_fc_weights(self, dec_weights: OrderedDict) -> None:
+        self._assert_state_dict(self._dec_model, dec_weights)
+        self._dec_model.load_state_dict(dec_weights)
     
     @property
-    def conv_model(self):
-        return self._conv_model
+    def enc_model(self):
+        return self._enc_model
     
     @property
-    def fc_model(self):
-        return self._fc_model
+    def dec_model(self):
+        return self._dec_model
     
     def _assert_state_dict(model, state_dict) -> None:
         model_state = model.state_dict()

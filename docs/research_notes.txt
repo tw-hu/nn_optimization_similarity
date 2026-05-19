@@ -20,8 +20,17 @@ Therefore, as a follow-up question: what is the effective dimension of this spac
 space of neural networks has lower effective dimension.
 
 Natural follow-up: what is the theoretical explanation for this fact?
-
 Natural follow-up II: how does the effective dimension change with time? with layer?
+
+May 12: Should implement CKA, which is a similarity measure which can handle not only activations of identical layers,
+but also activations of differently-shaped layers across different neural networks.
+
+Replace neural network with autoencoder
+
+May 19: We use a VGG-style downsampling convolutional encoder which gradually downsamples rather than all at once. This
+type of architecture typically leads to hierarchical features, which will be interesting to analyze.
+Hypothesis: autoencoders trained with higher learning rates will lead to more aggressive feature sampling in earlier
+layers
 
 Notes:
 - Data split: train, val, test

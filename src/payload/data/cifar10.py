@@ -18,8 +18,8 @@ CIFAR_CLASSES = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 
 def cifar_transform():
     return transforms.Compose(
         [
-            transforms.ToTensor(),
-            transforms.Normalize(CIFAR_MEAN, CIFAR_STD)
+            transforms.ToTensor(), # normalized pixel values from [0, 255] -> [0, 1]
+            transforms.Normalize(mean=CIFAR_MEAN, std=CIFAR_STD) # converts data  [0, 1]
         ]
     )
 
@@ -43,7 +43,14 @@ def build_cifar(
     else:
         return dataset
 
-def build_dataloader(dataset: Dataset, batch_size: int, num_workers: int = 1, seed: int = 0):
+def build_dataloader(dataset: Dataset, batch_size: int, num_workers: int = 1, seed: int = 0, pin_memory: bool = False):
     g = torch.Generator()
     g.manual_seed(seed)
-    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, generator=g)
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=True,
+        generator=g,
+        pin_memory=pin_memory
+        )

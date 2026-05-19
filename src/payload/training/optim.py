@@ -3,7 +3,7 @@
 import torch
 from torch import nn
 # from torch.optim import AdamW
-from adam_atan2 import AdamATan2
+from adam_atan2_pytorch import AdamAtan2
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 def build_optimizer(
@@ -30,7 +30,7 @@ def build_optimizer(
         {"params": no_decay, "weight_decay": 0.0}
     ]
     
-    return AdamATan2(hypers, lr=lr, betas=betas)
+    return AdamAtan2(hypers, lr=lr, betas=betas)
 
 @torch.no_grad()
 def accuracy(preds: torch.Tensor, labels: torch.Tensor, topk: tuple[int] = (1, 5)):

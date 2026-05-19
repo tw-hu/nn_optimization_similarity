@@ -1,15 +1,18 @@
 defaults:
-  - mode: train # dev or train
-  - optimizer: adamw
+  - mode: dev # dev or train
+  - optimizer: adam_atan2
   - _self_
 
 seed: 0
 device: cuda
-num_workers: 1
+num_workers: 8
+
+model:
+  activation: relu
 
 # Data
 data_dir: data
-experiment_name: ${mode.mode}mode_run_batchsize${mode.training.batch_size}_epochs${mode.training.num_epochs}_beta1${optimizer.beta1}_beta2${optimizer.beta2}_seed${seed}
+experiment_name: ${mode.mode}mode_run_bs${mode.training.batch_size}_lr${optimizer.lr}_epochs${mode.training.epochs}_seed${seed}
 output_dir: experiments/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment_name}
 data:
   seed: 0

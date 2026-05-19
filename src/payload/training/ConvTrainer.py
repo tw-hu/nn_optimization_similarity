@@ -23,7 +23,7 @@ class ConvTrainer:
     Keyword arguments:
     amp -- use automatic mixed precision for computing gradient (default: True)
     save_every -- interval (epochs) at which the model and optimizer weights are saved (default: 1)
-    on_epoch_end -- execute custom logic after each epoch (default: None)
+    on_epoch_end -- execute custom logic after each epoch, used for logging (default: None)
     """
     def __init__(
             self,
@@ -50,13 +50,13 @@ class ConvTrainer:
         self.output_dir = Path(output_dir)
         self.amp = amp and device.type == "cuda"
         self.scaler = GradScaler(enabled=self.amp)
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.MSELoss()
         self.log_every = log_every
         self.save_every = save_every
         self.on_epoch_end = on_epoch_end
 
     def fit(self):
-        best_top1 = 0.0 # tracks best accuracy
+        # best_top1 = 0.0 # tracks best accuracy
         for epoch in range(self.epochs):
             train_metrics = self._train_one_epoch(epoch)
             val_metrics = self._evaluate()
@@ -72,9 +72,6 @@ class ConvTrainer:
             logger.info("epoch %d: %s", epoch, metrics)
             if self.on_epoch_end is not None:
                 self.on_epoch_end(epoch, metrics)
-            if val_metrics["val/top1"] > best_top1:
-                best_top1 = val_metrics["val/top1"]
-                self._save("best.pt", self.output_dir, epoch, metrics)
             if epoch % self.save_every:
                 self._save(f"epoch_{epoch}.pt", self.output_dir / "intermediate", epoch, metrics)
         
@@ -88,14 +85,13 @@ class ConvTrainer:
         total_loss = 0.0
         n = 0
         t0 = time.time()
-        for step, (x,y) in enumerate(self.train_loader):
+        for step, (x, _) in enumerate(self.train_loader):
             x = x.to(self.device, non_blocking=True)
-            y = y.to(self.device, non_blocking=True)
             self.optimizer.zero_grad(set_to_none=True)
 
             with autocast(device_type=self.device.type, enabled=self.amp):
-                logits = self.model(x)
-                loss = self.criterion(logits, y)
+                x_recon = self.model(x)
+                loss = self.criterion(x_recon, x)
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
             self.scaler.update()
@@ -118,31 +114,23 @@ class ConvTrainer:
     
     @torch.no_grad()
     def _evaluate(self):
-        """evaluates model and returns validation loss and accuracy"""
+        """evaluates model and returns validation loss"""
 
         self.model.eval()
         total_loss = 0.0
-        total_acc = 0.0 # accuracy of top prediction
-        total_acc_t5 = 0.0 # accuracy of top 5 predictions
         n = 0
-        for x, y in self.val_loader:
+        for x, _ in self.val_loader:
             x = x.to(self.device, non_blocking=True)
-            y = y.to(self.device, non_blocking=True)
 
             with autocast(device_type=self.device.type, enabled=self.amp):
-                logits = self.model(x)
-                loss = self.criterion(logits, y)
-            acc, acc_t5 = accuracy(logits, y, topk=(1, 5))
+                x_recon = self.model(x)
+                loss = self.criterion(x_recon, x)
             batch_size = x.size(0)
             total_loss += loss.item() * batch_size
-            total_acc += acc * batch_size
-            total_acc_t5 += acc_t5 * batch_size
             n += batch_size
         
         return{
-            "val/loss": total_loss / max(n, 1),
-            "val/top1": total_acc / max(n, 1),
-            "val/top5": total_acc_t5 / max(n, 1)
+            "val/loss": total_loss / max(n, 1)
         }
 
     def _save(self, name: str, dir: str | Path, epoch: int, metrics: dict[str, float]):
