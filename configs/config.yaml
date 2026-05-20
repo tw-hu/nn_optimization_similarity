@@ -13,7 +13,7 @@ model:
 
 # Data
 data_dir: data
-experiment_name: ${mode.mode}mode_run_bs${mode.training.batch_size}_lr${optimizer.lr}_epochs${mode.training.epochs}_seed${seed}
+experiment_name: ${mode.mode}mode_run_lr${optimizer.lr}_seed${seed}
 output_dir: experiments/${experiment_name}
 data:
   seed: 0

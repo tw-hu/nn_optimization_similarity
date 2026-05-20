@@ -164,8 +164,10 @@ dependencies:
   - zstandard=0.24.0=py312hbc14757_0
   - zstd=1.5.7=h817c040_0
   - pip:
+      - adam-atan2-pytorch==0.3.4
       - annotated-types==0.7.0
       - antlr4-python3-runtime==4.9.3
+      - einops==0.8.2
       - fsspec==2026.4.0
       - gitdb==4.0.12
       - gitpython==3.1.50

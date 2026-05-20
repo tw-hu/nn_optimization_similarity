@@ -28,21 +28,35 @@ def main(cfg: DictConfig):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("building probe dataset")
-    probeset = build_cifar(Path(cfg.data_dir), "test", mini=True)
+    probeset = build_cifar(Path(cfg.data_dir), "val", mini=True)
 
-    for epoch in range(cfg.mode.training.epochs):
-        logger.info(f"collecting activations of model at epoch {epoch}")
-        model = build_model()
-        collector = ActivationCollector(
-            model,
-            model_name=f"{cfg.analysis.name}_epoch_{epoch}",
-            dataset=probeset,
-            device=device,
-            num_samples=512
-            )
-        collector.import_pt(dir / f"epoch_{epoch}.pt")
-        actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
-        torch.save(actvs, output_dir / f"epoch{epoch}.pt")
+    logger.info(f"collecting activations of final model")
+    model = build_model()
+    collector = ActivationCollector(
+        model,
+        model_name=f"{cfg.analysis.name}_final",
+        dataset=probeset,
+        device=device,
+        num_samples=512
+        )
+    collector.import_pt(dir / f"final.pt")
+    actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
+    torch.save(actvs, output_dir / f"final.pt")
+
+    if cfg.analysis.intermediate:
+        for epoch in range(cfg.mode.training.epochs):
+            logger.info(f"collecting activations of model at epoch {epoch}")
+            model = build_model()
+            collector = ActivationCollector(
+                model,
+                model_name=f"{cfg.analysis.name}_epoch_{epoch}",
+                dataset=probeset,
+                device=device,
+                num_samples=512
+                )
+            collector.import_pt(dir / f"epoch_{epoch}.pt")
+            actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
+            torch.save(actvs, output_dir / f"epoch_{epoch}.pt")
 
 if __name__ == "__main__":
     main()

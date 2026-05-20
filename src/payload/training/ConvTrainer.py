@@ -70,8 +70,10 @@ class ConvTrainer:
             logger.info("epoch %d: %s", epoch, metrics)
             if self.on_epoch_end is not None:
                 self.on_epoch_end(epoch, metrics)
-            self._save(f"epoch_{epoch}.pt", self.output_dir, epoch, metrics)
-
+            if epoch % self.save_every == 0:
+                self._save(f"epoch_{epoch}.pt", self.output_dir, epoch, metrics)
+        self._save(f"final.pt", self.output_dir, epoch, metrics)
+        
         return metrics
 
     def _train_one_epoch(self, curr_epoch: int):
