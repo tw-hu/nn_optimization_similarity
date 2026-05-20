@@ -8,15 +8,15 @@ import numpy as np
 import torch
 from torch import nn
 
-# def get_activation(activation: str = 'relu'):
-#     activations = {
-#         'relu': nn.ReLU,
-#         'sigmoid': nn.Sigmoid,
-#         'tanh': nn.Tanh,
-#     }
-#     if activation.lower() not in activations:
-#         raise ValueError("Activation must be one of 'relu', 'sigmoid', or 'tanh'")
-#     return activations[activation.lower()]
+def get_activation(activation: str = 'relu'):
+    activations = {
+        'relu': nn.ReLU,
+        'sigmoid': nn.Sigmoid,
+        'tanh': nn.Tanh,
+    }
+    if activation.lower() not in activations:
+        raise ValueError("Activation must be one of 'relu', 'sigmoid', or 'tanh'")
+    return activations[activation.lower()]
 
 # O = floor((I - K + 2*P)/S) + 1
 def build_conv_encoder():

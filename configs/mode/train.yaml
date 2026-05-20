@@ -1,4 +1,5 @@
 mode: train
+mini: False
 
 training:
   batch_size: 32

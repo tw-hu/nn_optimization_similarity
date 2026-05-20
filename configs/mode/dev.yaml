@@ -1,4 +1,5 @@
 mode: dev
+mini: True
 
 training:
   batch_size: 32

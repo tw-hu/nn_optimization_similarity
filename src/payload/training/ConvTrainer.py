@@ -13,8 +13,6 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 
-from .optim import accuracy
-
 logger = logging.getLogger(__name__)
 
 class ConvTrainer:
@@ -72,10 +70,8 @@ class ConvTrainer:
             logger.info("epoch %d: %s", epoch, metrics)
             if self.on_epoch_end is not None:
                 self.on_epoch_end(epoch, metrics)
-            if epoch % self.save_every:
-                self._save(f"epoch_{epoch}.pt", self.output_dir / "intermediate", epoch, metrics)
-        
-        self._save("final.pt", self.output_dir, self.epochs - 1, metrics)
+            self._save(f"epoch_{epoch}.pt", self.output_dir, epoch, metrics)
+
         return metrics
 
     def _train_one_epoch(self, curr_epoch: int):
@@ -142,9 +138,8 @@ class ConvTrainer:
         torch.save(
             {
                 "model_state": self.model.state_dict(),
-                "optimizer_state": self.optimizer.state_dict(),
-                "scheduler_state": self.scheduler.state_dict() if self.scheduler else None,
-                "epoch": epoch,
+                # "optimizer_state": self.optimizer.state_dict(),
+                # "scheduler_state": self.scheduler.state_dict() if self.scheduler else None,
                 "metrics": metrics
             },
             path

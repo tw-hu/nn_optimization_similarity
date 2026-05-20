@@ -27,8 +27,8 @@ def build_cifar(
         root: str | Path,
         split: str = "train",
         transform = cifar_transform(),
-        mode: str = "dev",
-        test_fraction: int = 0.01
+        mini: bool = False,
+        mini_fraction: int = 0.01
         ):
     root = Path(root) / split
     if not root.exists():
@@ -36,8 +36,8 @@ def build_cifar(
             f"CIFAR-10 split not found at {root}. Expected ImageFolder layout."
         )
     dataset = ImageFolder(str(root), transform = transform)
-    if mode == "dev":
-        num_fraction = int(len(dataset) * test_fraction)
+    if mini:
+        num_fraction = int(len(dataset) * mini_fraction)
         idx = np.random.choice(len(dataset), num_fraction, replace=False)
         return Subset(dataset, idx)
     else:

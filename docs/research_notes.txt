@@ -34,7 +34,7 @@ layers
 
 Notes:
 - Data split: train, val, test
-    - Val set will also be used to compute NN representation vectors
+    - Test set will be used to compute NN representation vectors
 - No dropout layers (adds randomness during training procedure, which we want to avoid).
 - Instead of AdamW, use the Adam-atan2 optimizer (https://arxiv.org/pdf/2407.05872). This is "a new numerically stable,
     scale-invariant version of Adam that eliminates the epsilon hyperparameter entirely"

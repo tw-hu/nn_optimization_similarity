@@ -19,7 +19,7 @@ from payload.data.cifar10 import build_cifar, build_dataloader
 from payload.training.ConvTrainer import ConvTrainer
 from payload.training.optim import build_optimizer
 from payload.models.ConvClassifier import build_model
-from payload.utils.utils import set_seed
+from payload.utils.utils import set_seed, save_time
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ def main(cfg: DictConfig):
         )
 
     # Data
-    train_set = build_cifar(Path(cfg.data_dir), "train", mode=cfg.mode.mode)
+    train_set = build_cifar(Path(cfg.data_dir), "train", mini=cfg.mode.mini)
     train_loader = build_dataloader(
         train_set,
         batch_size=cfg.mode.training.batch_size,
@@ -49,7 +49,7 @@ def main(cfg: DictConfig):
         seed=cfg.data.seed,
         pin_memory=(cfg.device == "cuda" and torch.cuda.is_available()))
 
-    val_set = build_cifar(Path(cfg.data_dir), "val", mode=cfg.mode.mode)
+    val_set = build_cifar(Path(cfg.data_dir), "val", mini=cfg.mode.mini)
     val_loader = build_dataloader(
         val_set,
         batch_size=cfg.mode.training.batch_size,
@@ -88,6 +88,7 @@ def main(cfg: DictConfig):
         on_epoch_end=on_epoch_end
     )
     metrics = trainer.fit()
+    save_time(output_dir)
 
     if wandb_run is not None:
         wandb.summary.update(metrics)
