@@ -46,7 +46,7 @@ def main(cfg: DictConfig):
         train_set,
         batch_size=cfg.mode.training.batch_size,
         num_workers=cfg.num_workers,
-        seed=cfg.data.seed,
+        seed=cfg.seed,
         pin_memory=(cfg.device == "cuda" and torch.cuda.is_available()))
 
     val_set = build_cifar(Path(cfg.data_dir), "val", mini=cfg.mode.mini)
@@ -54,7 +54,7 @@ def main(cfg: DictConfig):
         val_set,
         batch_size=cfg.mode.training.batch_size,
         num_workers=cfg.num_workers,
-        seed=cfg.data.seed,
+        seed=cfg.seed,
         pin_memory=(cfg.device == "cuda" and torch.cuda.is_available()))
 
     # Model + optimizer

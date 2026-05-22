@@ -14,7 +14,6 @@ NUM_TRAIN = 40000
 NUM_VAL = 10000
 
 DATA_DIR = "./data"
-
 SEED = 0
 
 def save_split(data: Dataset | Subset, root: str | Path, split_name: str):

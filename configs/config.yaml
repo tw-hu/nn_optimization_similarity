@@ -1,22 +1,17 @@
 defaults:
   - mode: dev # dev or train
   - optimizer: adam_atan2
-  - analysis: experiment
+  - override hydra/launcher: cluster_config
   - _self_
 
 seed: 0
 device: cuda
 num_workers: 8
 
-model:
-  activation: relu
-
 # Data
 data_dir: data
 experiment_name: ${mode.mode}mode_run_lr${optimizer.lr}_seed${seed}
 output_dir: experiments/${experiment_name}
-data:
-  seed: 0
 
 # Weights and Biases (used for logging)
 wandb:

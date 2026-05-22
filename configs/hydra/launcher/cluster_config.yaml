@@ -1,0 +1,6 @@
+launcher:
+    partition: unsup-course-gpu
+    output: logs/${experiment_name}_cluster.log
+    timeout_min: 480
+    gpus: 1
+    cpus_per_task: 2

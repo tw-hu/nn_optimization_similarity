@@ -3,8 +3,6 @@ Convolutional neural network architectures used in this analysis
 """
 from collections import OrderedDict
 
-import numpy as np
-
 import torch
 from torch import nn
 
@@ -22,7 +20,7 @@ def get_activation(activation: str = 'relu'):
 def build_conv_encoder():
     # activation = get_activation(act)
     model = nn.Sequential(OrderedDict([ # (bs, 3, 32, 32)
-        ("enc_block1", nn.Sequential(
+        ("block1", nn.Sequential(
             OrderedDict([
                 ("conv1_1", nn.Conv2d(3, 64, 3, padding=1)), # (bs, 64, 32, 32)
                 ("bnor1_1", nn.BatchNorm2d(64)),
@@ -32,7 +30,7 @@ def build_conv_encoder():
                 ("relu1_2", nn.ReLU(inplace=True)),
             ])
         )),
-        ("enc_block2", nn.Sequential(
+        ("block2", nn.Sequential(
             OrderedDict([
                 ("conv2_1", nn.Conv2d(64, 128, 3, padding=1, stride=2)), # (bs, 128, 16, 16)
                 ("bnor2_1", nn.BatchNorm2d(128)),
@@ -45,7 +43,7 @@ def build_conv_encoder():
                 ("relu2_3", nn.ReLU(inplace=True))
             ])
         )),
-        ("enc_block3", nn.Sequential(
+        ("block3", nn.Sequential(
             OrderedDict([
                 ("conv3_1", nn.Conv2d(128, 256, 3, padding=1, stride=2)), # (bs, 256, 8, 8)
                 ("bnor3_1", nn.BatchNorm2d(256)),
@@ -58,7 +56,7 @@ def build_conv_encoder():
                 ("relu3_3", nn.ReLU(inplace=True))
             ])
         )),
-        ("enc_block4", nn.Sequential(
+        ("block4", nn.Sequential(
             OrderedDict([
                 ("conv4_1", nn.Conv2d(256, 512, 3, padding=1, stride=2)), # (bs, 512, 4, 4)
                 ("bnor4_1", nn.BatchNorm2d(512)),
@@ -77,7 +75,7 @@ def build_conv_encoder():
 def build_conv_decoder():
     # activation = get_activation(act)
     model = nn.Sequential(OrderedDict([ # (bs, 512, 3, 3)
-        ("dec_block1", nn.Sequential(
+        ("block1", nn.Sequential(
             OrderedDict([
                 ("conv5_1", nn.ConvTranspose2d(512, 512, 3, padding=1)), # (bs, 512, 3, 3)
                 ("bnor5_1", nn.BatchNorm2d(512)),
@@ -90,7 +88,7 @@ def build_conv_decoder():
                 ("relu5_3", nn.ReLU(inplace=True))
             ])
         )),
-        ("dec_block2", nn.Sequential(
+        ("block2", nn.Sequential(
             OrderedDict([
                 ("conv6_1", nn.ConvTranspose2d(256, 256, 3, padding=1)), # (bs, 256, 7, 7)
                 ("bnor6_1", nn.BatchNorm2d(256)),
@@ -103,7 +101,7 @@ def build_conv_decoder():
                 ("relu6_3", nn.ReLU(inplace=True))
             ])
         )),
-        ("dec_block3", nn.Sequential(
+        ("block3", nn.Sequential(
             OrderedDict([
                 ("conv7_1", nn.ConvTranspose2d(128, 128, 3, padding=1)), # (bs, 512, 3, 3)
                 ("bnor7_1", nn.BatchNorm2d(128)),
@@ -116,7 +114,7 @@ def build_conv_decoder():
                 ("relu7_3", nn.ReLU(inplace=True))
             ])
         )),
-        ("dec_block4", nn.Sequential(
+        ("block4", nn.Sequential(
             OrderedDict([
                 ("conv8_1", nn.ConvTranspose2d(64, 64, 3, padding=1)), # (bs, 64, 32, 32)
                 ("bnor8_1", nn.BatchNorm2d(64)),
@@ -130,7 +128,7 @@ def build_conv_decoder():
 def build_mlp(layer_dims: list[int], act: str = "relu"):
     activation = get_activation(act)
     layers = OrderedDict()
-    layer_dims = np.array(layer_dims)
+    layer_dims = torch.as_tensor(layer_dims)
     for l in range(len(layer_dims)-1):
         layers[f"fc{l}"] = nn.Linear(layer_dims[l], layer_dims[l+1])
         if l < len(layers) - 2:
@@ -151,28 +149,28 @@ class ConvAutoencoder(nn.Module):
         dec_model: nn.Module
     ):
         super().__init__()
-        self._enc_model = enc_model
-        self._dec_model = dec_model
+        self._enc = enc_model
+        self._dec = dec_model
 
     def forward(self, x):
-        r = self._enc_model(x)
-        return self._dec_model(r)
+        r = self._enc(x)
+        return self._dec(r)
     
     def load_enc_weights(self, enc_weights: OrderedDict) -> None:
-        self._assert_state_dict(self._enc_model, enc_weights)
-        self._enc_model.load_state_dict(enc_weights)
+        self._assert_state_dict(self._enc, enc_weights)
+        self._enc.load_state_dict(enc_weights)
 
     def load_fc_weights(self, dec_weights: OrderedDict) -> None:
-        self._assert_state_dict(self._dec_model, dec_weights)
-        self._dec_model.load_state_dict(dec_weights)
+        self._assert_state_dict(self._dec, dec_weights)
+        self._dec.load_state_dict(dec_weights)
     
     @property
     def enc_model(self):
-        return self._enc_model
+        return self._enc
     
     @property
     def dec_model(self):
-        return self._dec_model
+        return self._dec
     
     def _assert_state_dict(model, state_dict) -> None:
         model_state = model.state_dict()

@@ -9,9 +9,8 @@ from collections import OrderedDict
 
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
-from payload.analysis.similarity import compute_cka
 from payload.data.cifar10 import build_dataloader
 
 logger = logging.getLogger(__name__)

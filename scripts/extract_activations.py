@@ -12,7 +12,7 @@ import hydra
 from omegaconf import DictConfig
 
 from payload.analysis.ActivationCollector import ActivationCollector
-from payload.data.cifar10 import build_cifar, build_dataloader
+from payload.data.cifar10 import build_cifar
 from payload.models.ConvClassifier import build_model
 from payload.utils.utils import set_seed
 
@@ -23,7 +23,7 @@ def main(cfg: DictConfig):
     set_seed(cfg.seed)
     device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
 
-    dir = Path("experiments") / cfg.analysis.name
+    dir = Path("experiments") / cfg.experiment_name
     output_dir = dir / "activations"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -56,6 +56,7 @@ def main(cfg: DictConfig):
                 )
             collector.import_pt(dir / f"epoch_{epoch}.pt")
             actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
+            print(actvs)
             torch.save(actvs, output_dir / f"epoch_{epoch}.pt")
 
 if __name__ == "__main__":
