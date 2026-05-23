@@ -5,6 +5,8 @@ Usage:
 1. Configure configs/config.yaml file
 2. Single run:
     python scripts/train.py
+3. Multi run:
+    python scripts/train.py -m seed=0,1,2,3,4
 """
 import logging
 from pathlib import Path
@@ -60,11 +62,12 @@ def main(cfg: DictConfig):
     # Model + optimizer
     device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
     model = build_model()
+    
     optimizer = build_optimizer(
         model,
+        optimizer=cfg.optimizer.name,
         lr=cfg.optimizer.lr,
         weight_decay=cfg.optimizer.weight_decay,
-        betas=(cfg.optimizer.beta1, cfg.optimizer.beta2)
     )
     scheduler = CosineAnnealingLR(optimizer, T_max=cfg.mode.training.epochs)
 

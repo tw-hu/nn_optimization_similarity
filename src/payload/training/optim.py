@@ -2,15 +2,17 @@
 
 import torch
 from torch import nn
-# from torch.optim import AdamW
+from torch.optim import AdamW, SGD
 from adam_atan2_pytorch import AdamAtan2
-from torch.optim.lr_scheduler import CosineAnnealingLR
 
 def build_optimizer(
         model: nn.Module,
+        optimizer: str,
         lr: float,
-        weight_decay: float,
+        weight_decay: float = 5e-4,
         betas: tuple[float, float] = (0.9, 0.999),
+        momentum: float = 0.9,
+        nesterov: bool = True,
         skip_list: tuple = (nn.BatchNorm2d)
 ):
     """
@@ -30,7 +32,12 @@ def build_optimizer(
         {"params": no_decay, "weight_decay": 0.0}
     ]
     
-    return AdamAtan2(hypers, lr=lr, betas=betas)
+    if optimizer == "adam_atan2":
+        return AdamAtan2(hypers, lr=lr, betas=betas)
+    elif optimizer == "adamw":
+        return AdamW(hypers, lr=lr, betas=betas)
+    elif optimizer == "sgd":
+        return SGD(hypers, lr=lr, momentum=momentum, nesterov=nesterov)
 
 @torch.no_grad()
 def accuracy(preds: torch.Tensor, labels: torch.Tensor, topk: tuple[int] = (1, 5)):

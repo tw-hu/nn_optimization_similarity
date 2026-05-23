@@ -34,7 +34,7 @@ def main(cfg: DictConfig):
     model = build_model()
     collector = ActivationCollector(
         model,
-        model_name=f"{cfg.analysis.name}_final",
+        model_name=f"{cfg.experiment_name}_final",
         dataset=probeset,
         device=device,
         num_samples=512
@@ -43,13 +43,13 @@ def main(cfg: DictConfig):
     actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
     torch.save(actvs, output_dir / f"final.pt")
 
-    if cfg.analysis.intermediate:
+    if cfg.mode == "train":
         for epoch in range(cfg.mode.training.epochs):
             logger.info(f"collecting activations of model at epoch {epoch}")
             model = build_model()
             collector = ActivationCollector(
                 model,
-                model_name=f"{cfg.analysis.name}_epoch_{epoch}",
+                model_name=f"{cfg.experiment_name}_epoch_{epoch}",
                 dataset=probeset,
                 device=device,
                 num_samples=512

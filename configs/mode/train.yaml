@@ -4,7 +4,7 @@ intermediate: True
 
 training:
   batch_size: 32
-  epochs: 2
+  epochs: 100
   amp: True
-  log_every: 100
+  log_every: 500
   save_every: 5

@@ -1,7 +1,7 @@
 defaults:
   - mode: dev # dev or train
   - optimizer: adam_atan2
-  - override hydra/launcher: cluster_config
+  # - override hydra/launcher: cluster_config
   - _self_
 
 seed: 0
@@ -10,7 +10,7 @@ num_workers: 8
 
 # Data
 data_dir: data
-experiment_name: ${mode.mode}mode_run_lr${optimizer.lr}_seed${seed}
+experiment_name: ${mode.mode}mode_run_optimizer_${optimizer.name}_seed${seed}
 output_dir: experiments/${experiment_name}
 
 # Weights and Biases (used for logging)

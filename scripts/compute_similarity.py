@@ -27,7 +27,7 @@ actv_b = torch.load(path_b)
 name = f"{mode}mode_run_lra{lr_a}_lrb{lr_b}_seeda{s_a}_seedb{s_b}"
 
 similarity = SimilarityComputer(actv_a, actv_b, experiment_name=name)
-similarity.compute_similarities("cka")
-similarity.plot_similarities()
+# similarity.compute_similarities("cka")
+# similarity.plot_similarities()
 similarity.compute_similarities("pwcca")
 similarity.plot_similarities()

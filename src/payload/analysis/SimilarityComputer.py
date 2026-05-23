@@ -17,12 +17,18 @@ class SimilarityComputer():
     A class which uses neuron activations to compute and visualize layer similarities
     All similarity measures are implemented on the conventions of Kornblith et al. (2019)
     """
-    def __init__(self, activations_a: OrderedDict, activations_b: OrderedDict, experiment_name: str = None, output_dir: str = "outputs"):
+    def __init__(
+            self,
+            activations_a: OrderedDict,
+            activations_b: OrderedDict,
+            experiment_name: str = None,
+            output_dir: str = "outputs"
+            ):
         self.activations_a, self.activations_b = activations_a, activations_b # {layer_name: [n_samples, c, h, w]}
         self.layers_a, self.layers_b = list(activations_a), list(activations_b)
         self.experiment_name = experiment_name
         self.output_dir = Path(output_dir)
-        self._compute_similarity = None
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         self.similarities = {}
 
     def compute_similarities(self, metric: str = "cka"):
@@ -125,3 +131,4 @@ class SimilarityComputer():
         pwcca_score = torch.dot(weights, rho)
 
         return pwcca_score.item()
+    

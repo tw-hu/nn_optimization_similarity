@@ -32,6 +32,13 @@ type of architecture typically leads to hierarchical features, which will be int
 Hypothesis: autoencoders trained with higher learning rates will lead to more aggressive feature sampling in earlier
 layers
 
+May 22: We train three populations of neural networks, optimized differently
+    1. Adam_atan2: lr=0.001, weight_decay=1e-2, batch_size=32, num_epochs=100
+    2. AdamW: lr=0.001, weight_decay=1e-2, batch_size=32, num_epochs=100
+    3. SGD: lr=0.005, weight_decay=5e-4, momentum=0.9, batch_size=256, num_epochs=200
+        (taken from https://proceedings.mlr.press/v202/refinetti23a/refinetti23a.pdf
+        "Neural networks trained with SGD learn distributions of increasing complexity")
+
 Notes:
 - Data split: train, val, test
     - Test set will be used to compute NN representation vectors
