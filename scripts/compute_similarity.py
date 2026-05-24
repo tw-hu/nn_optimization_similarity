@@ -1,33 +1,46 @@
 """
 Script used to compute the similarity between activation vectors of various neural networks
 """
+import logging
 from pathlib import Path
-import itertools
 
 import torch
+import hydra
+
+from omegaconf import OmegaConf, DictConfig
 
 from payload.analysis.SimilarityComputer import SimilarityComputer
 
-INSTANCES_PER_CONFIG = 10 # the number of neural networks trained on each hyperparameter configuration
-LRS = [1.25e-4, 1e-3, 8e-3]
+logger = logging.getLogger(__name__)
 
-lr_a, lr_b = 1e-3, 1e-3
-s_a, s_b = 0, 0
-mode = "dev"
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
+def main(cfg: DictConfig):
+    device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
 
-file_a = f"{mode}mode_run_lr{lr_a}_seed{s_a}"
-file_b = f"{mode}mode_run_lr{lr_b}_seed{s_b}"
+    opt_a, opt_b = cfg.net_1.optimizer, cfg.net_2.optimizer
+    s_a, s_b = cfg.net_1.seed, cfg.net_2.seed
 
-path_a = Path(f"experiments/{file_a}/activations/final.pt")
-actv_a = torch.load(path_a) # {layer_name: [n_samples, n_channels, dim_x, dim_y]}
+    if cfg.state == "final":
+        model_states = ["final"]
+    elif cfg.state == "epoch":
+        opt_path = Path(f"configs/optimizer/{cfg.net_1.optimizer}.yaml")
+        epochs = OmegaConf.load(opt_path).epochs if cfg.mode == "train" else 2
+        model_states = [f"epoch_{n}" for n in range(0, epochs, 5)]
 
-path_b = Path(f"experiments/{file_b}/activations/final.pt")
-actv_b = torch.load(path_b)
+    for model_state in model_states:
+        file_a = f"{cfg.mode.mode}mode_run_optimizer_{opt_a}_seed{s_a}"
+        file_b = f"{cfg.mode.mode}mode_run_optimizer_{opt_b}_seed{s_b}"
+        path_a = Path(f"experiments/{file_a}/activations/{model_state}.pt")
+        path_b = Path(f"experiments/{file_b}/activations/{model_state}.pt")
+        actv_a = torch.load(path_a, map_location=device) # {layer_name: [n_samples, n_channels, dim_x, dim_y]}
+        actv_b = torch.load(path_b, map_location=device)
 
-name = f"{mode}mode_run_lra{lr_a}_lrb{lr_b}_seeda{s_a}_seedb{s_b}"
+        name = f"{cfg.mode.mode}mode_opA_{opt_a}_{s_a}_opB_{opt_b}_{s_b}"
 
-similarity = SimilarityComputer(actv_a, actv_b, experiment_name=name)
-# similarity.compute_similarities("cka")
-# similarity.plot_similarities()
-similarity.compute_similarities("pwcca")
-similarity.plot_similarities()
+        similarity = SimilarityComputer(actv_a, actv_b, experiment_name=name, model_state=model_state)
+        similarity.compute_similarities(metric=cfg.sim_metric)
+        similarity.plot_similarities(title=f"Layer similarity at model state {model_state}")
+        similarity.write_similarities()
+
+if __name__ == "__main__":
+    main()

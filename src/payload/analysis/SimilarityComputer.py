@@ -5,6 +5,8 @@ from collections import OrderedDict
 import itertools
 from pathlib import Path
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
@@ -22,46 +24,32 @@ class SimilarityComputer():
             activations_a: OrderedDict,
             activations_b: OrderedDict,
             experiment_name: str = None,
-            output_dir: str = "outputs"
+            output_dir: str = "outputs",
+            model_state: str = "final"
             ):
         self.activations_a, self.activations_b = activations_a, activations_b # {layer_name: [n_samples, c, h, w]}
         self.layers_a, self.layers_b = list(activations_a), list(activations_b)
         self.experiment_name = experiment_name
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.model_state = model_state
         self.similarities = {}
+
+        self._metric: str = None
 
     def compute_similarities(self, metric: str = "cka"):
         if metric == "cka":
             _compute_similarity = self._compute_cka
-        if metric == "pwcca":
+        elif metric == "pwcca":
             _compute_similarity = self._compute_pwcca
-
+        else:
+            raise ValueError("Not a valid metric. Use either 'cka' or 'pwcca.'")
+        
+        self._metric = metric
         for La, Lb in itertools.product(list(self.activations_a.keys()), self.activations_b.keys()):
             self.similarities[(La, Lb)] = _compute_similarity(self.activations_a[La], self.activations_b[Lb])
         if self.output_dir:
-            torch.save(self.similarities, self.output_dir / f"{metric}_similarity_dict.pt")
-
-    def plot_similarities(self) -> None:
-        """
-        Generates a plot of similarities, with activations_a on the x-axis and activations_b on the y-axis.
-        """
-        x_vars, y_vars, vals = [], [], []
-        for (x, y), val in self.similarities.items():
-            x_vars.append(x)
-            y_vars.append(y)
-            vals.append(val)
-
-        cmap = cm.get_cmap("viridis")
-        norm = mcolors.Normalize(vmin=min(vals), vmax=max(vals))
-        
-        fig, ax = plt.subplots(figsize=(7, 4))
-        scatter = ax.scatter(x_vars, y_vars, c=vals, cmap=cmap, norm=norm, s=500, marker="s")
-        cbar = fig.colorbar(scatter, ax=ax)
-        cbar.set_label("Similarities")
-        if self.output_dir:
-            plt.savefig(self.output_dir / f"{self.experiment_name}_similarities.png")
-        plt.show()
+            torch.save(self.similarities, self.output_dir / f"{self.experiment_name}_{metric}_{self.model_state}.pt")
 
     def _hsic(self, K: Tensor, L: Tensor):
         """Computes Hilbert-Schmidt Independence Criterion (HSIC)"""
@@ -93,7 +81,7 @@ class SimilarityComputer():
         
         return cka_score.item()
     
-    def _compute_pwcca(features_a: Tensor, features_b: Tensor, epsilon: float = 1e-8) -> float:
+    def _compute_pwcca(self, features_a: Tensor, features_b: Tensor, epsilon: float = 1e-8) -> float:
         """
         Computes Projected Weighted Canonical Correlation Analysis (PWCCA) metric for two
         activation matrices with shape (n_samples, c, h, w)
@@ -132,3 +120,43 @@ class SimilarityComputer():
 
         return pwcca_score.item()
     
+    def write_similarities(self, output_folder: Path | str = None) -> None:
+        """
+        Writes similarity dictionary to output folder for easy downstream retrieval and analysis
+        """
+        output_dir = Path(output_folder if output_folder is not None else self.output_dir)
+        output_dir = output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.pt"
+        torch.save(self.similarities, output_dir)
+
+    def plot_similarities(self, title: str = "Title") -> None:
+        """
+        Generates a plot of similarities, with activations_a on the x-axis and activations_b on the y-axis.
+        """
+        if not self._metric:
+            raise ValueError("Compute similarity with metric pwcca/cka first.")
+
+        if self._metric == "cka":
+            metric_str = "CKA"
+        elif self._metric == "pwcca":
+            metric_str = "PWCCA"
+
+        vals = np.zeros((len(self.layers_b), len(self.layers_a)))
+        for i, La in enumerate(self.layers_a):
+            for j, Lb in enumerate(self.layers_b):
+                vals[i, j] = self.similarities[La, Lb]
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        im = ax.imshow(vals, cmap='viridis')
+
+        ax.set_xticks(np.arange(len(self.layers_b)), labels=self.layers_b)
+        ax.set_yticks(np.arange(len(self.layers_a)), labels=self.layers_a)
+        ax.invert_yaxis()
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+        cbar = ax.figure.colorbar(im, ax=ax)
+        cbar.ax.set_ylabel(f"{metric_str} Similarity", rotation=-90, va="bottom")
+        ax.set_title(title)
+
+        plt.tight_layout()
+        if self.output_dir:
+            plt.savefig(self.output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.png")

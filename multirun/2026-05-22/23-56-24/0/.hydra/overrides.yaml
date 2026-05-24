@@ -1,0 +1,3 @@
+- mode=train
+- seed=10
+- optimizer=sgd

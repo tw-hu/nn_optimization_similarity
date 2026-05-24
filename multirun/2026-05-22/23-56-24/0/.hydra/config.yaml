@@ -1,0 +1,28 @@
+mode:
+  mode: train
+  mini: false
+  intermediate: true
+  training:
+    batch_size: 32
+    epochs: 100
+    amp: true
+    log_every: 500
+    save_every: 5
+optimizer:
+  name: sgd
+  lr: 0.005
+  weight_decay: 0.0005
+  momentum: 0.9
+  nesterov: true
+  epochs: 200
+  batch_size: 256
+seed: 10
+device: cuda
+num_workers: 8
+data_dir: data
+experiment_name: ${mode.mode}mode_run_optimizer_${optimizer.name}_seed${seed}
+output_dir: experiments/${experiment_name}
+wandb:
+  enabled: true
+  project: nn_optimization_similarity
+  mode: offline

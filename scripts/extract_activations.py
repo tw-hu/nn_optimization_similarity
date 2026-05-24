@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
-    set_seed(cfg.seed)
+    set_seed(10)
     device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
 
     dir = Path("experiments") / cfg.experiment_name
@@ -37,14 +37,14 @@ def main(cfg: DictConfig):
         model_name=f"{cfg.experiment_name}_final",
         dataset=probeset,
         device=device,
-        num_samples=512
+        num_samples=128
         )
     collector.import_pt(dir / f"final.pt")
     actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
     torch.save(actvs, output_dir / f"final.pt")
 
-    if cfg.mode == "train":
-        for epoch in range(cfg.mode.training.epochs):
+    if cfg.mode.intermediate:
+        for epoch in range(0, (cfg.optimizer.epochs if cfg.mode == "train" else 2), 5):
             logger.info(f"collecting activations of model at epoch {epoch}")
             model = build_model()
             collector = ActivationCollector(
@@ -52,11 +52,10 @@ def main(cfg: DictConfig):
                 model_name=f"{cfg.experiment_name}_epoch_{epoch}",
                 dataset=probeset,
                 device=device,
-                num_samples=512
+                num_samples=128
                 )
             collector.import_pt(dir / f"epoch_{epoch}.pt")
             actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
-            print(actvs)
             torch.save(actvs, output_dir / f"epoch_{epoch}.pt")
 
 if __name__ == "__main__":

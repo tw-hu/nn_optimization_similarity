@@ -1,6 +1,6 @@
 mode: train
 mini: False
-intermediate: True
+intermediate: False
 
 training:
   batch_size: 32

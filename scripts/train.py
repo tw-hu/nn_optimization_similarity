@@ -46,7 +46,7 @@ def main(cfg: DictConfig):
     train_set = build_cifar(Path(cfg.data_dir), "train", mini=cfg.mode.mini)
     train_loader = build_dataloader(
         train_set,
-        batch_size=cfg.mode.training.batch_size,
+        batch_size=cfg.optimizer.batch_size,
         num_workers=cfg.num_workers,
         seed=cfg.seed,
         pin_memory=(cfg.device == "cuda" and torch.cuda.is_available()))
@@ -54,7 +54,7 @@ def main(cfg: DictConfig):
     val_set = build_cifar(Path(cfg.data_dir), "val", mini=cfg.mode.mini)
     val_loader = build_dataloader(
         val_set,
-        batch_size=cfg.mode.training.batch_size,
+        batch_size=cfg.optimizer.batch_size,
         num_workers=cfg.num_workers,
         seed=cfg.seed,
         pin_memory=(cfg.device == "cuda" and torch.cuda.is_available()))
@@ -69,7 +69,7 @@ def main(cfg: DictConfig):
         lr=cfg.optimizer.lr,
         weight_decay=cfg.optimizer.weight_decay,
     )
-    scheduler = CosineAnnealingLR(optimizer, T_max=cfg.mode.training.epochs)
+    scheduler = CosineAnnealingLR(optimizer, T_max=(cfg.optimizer.epochs if cfg.mode=="train" else 2))
 
     # Training loop
     def on_epoch_end(epoch: int, metrics: dict) -> None:
@@ -84,7 +84,7 @@ def main(cfg: DictConfig):
         train_loader=train_loader,
         val_loader=val_loader,
         device=device,
-        epochs=cfg.mode.training.epochs,
+        epochs=(cfg.optimizer.epochs if cfg.mode=="train" else 2),
         output_dir=output_dir,
         amp=cfg.mode.training.amp,
         log_every=cfg.mode.training.log_every,

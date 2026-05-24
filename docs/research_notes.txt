@@ -59,3 +59,22 @@ To do:
 - Implement save_every: we want to save the state of the NN over the course of the training process
 - Understand Hydra and create config files for experiments
 - Build optimizer and scheduler
+
+Data we have:
+- Training data: train/val loss as function of time
+- Similarity between any two neural networks (N_layer x N_layer matrices M)
+    Can produce distance measure:
+    - Distance between layers = 1 - similarity
+    Can produce scalar/aggregate/global similarity measures:
+    - Mean Diagonal Similarity: S = (1/L) \sum_{i=1}^L M_{ii}
+    - Banded Mean Diagonal Similarity: S_{banded} = (1/L) \sum_{i=1}^L \max_{j\in i-1, i, i+1} M_{ij}, can generalize
+        to thicker bands
+    - Trace to sum ratio: r = Tr M / \sum_{i,j} M_{ij}
+
+Plots to make:
+- Pairwise NN similarity (among sgd, adamw, adam_atan2) of last layer of each encoder block versus training epoch, for pwcca and cka
+    * to see how similarity changes as training progresses
+- How does overall similarity, as measured by the aggregate metrics above, change with training time?
+- Low-dimensional visualization of neural network similarity based on their aggregate similarity score (MDS, t-SNE)
+    * clustering?
+- Self-similarity of the same layer across different points in time. Superposed with CosineAnnealed learning rate.
