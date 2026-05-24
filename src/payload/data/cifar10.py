@@ -15,22 +15,17 @@ CIFAR_MEAN = (0.4914, 0.4822 ,0.4465)
 CIFAR_STD = (0.2470, 0.2435, 0.2616)
 
 CIFAR_INV_MEAN = tuple(-m / s for m, s in zip(CIFAR_MEAN, CIFAR_STD))
-CIFAR_INV_STD = tuple(1.0 / s for s in CIFAR_MEAN)
-
-CIFAR_CLASSES = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+CIFAR_INV_STD = tuple(1.0 / s for s in CIFAR_STD)
 
 def cifar_transform():
-    return transforms.Compose(
-        [
+    return transforms.Compose([
             transforms.ToTensor(), # normalized pixel values from [0, 255] -> [0, 1]
             transforms.Normalize(mean=CIFAR_MEAN, std=CIFAR_STD) # converts data to mean = 0, std = 1
-        ]
-    )
+        ])
 
 def cifar_inverse_transform():
     return transforms.Compose([
-        transforms.Normalize(mean=CIFAR_INV_MEAN, std=CIFAR_INV_STD),
-        transforms.Lambda(lambda x: x * 255.0) 
+        transforms.Normalize(mean=CIFAR_INV_MEAN, std=CIFAR_INV_STD)
     ])
 
 def build_cifar(

@@ -9,7 +9,7 @@ import logging
 
 import torch
 import hydra
-from omegaconf import DictConfig
+from omegaconf import OmegaConf, DictConfig
 
 from payload.analysis.ActivationCollector import ActivationCollector
 from payload.data.cifar10 import build_cifar
@@ -30,33 +30,27 @@ def main(cfg: DictConfig):
     logger.info("building probe dataset")
     probeset = build_cifar(Path(cfg.data_dir), "val", mini=True)
 
-    logger.info(f"collecting activations of final model")
-    model = build_model()
-    collector = ActivationCollector(
-        model,
-        model_name=f"{cfg.experiment_name}_final",
-        dataset=probeset,
-        device=device,
-        num_samples=128
-        )
-    collector.import_pt(dir / f"final.pt")
-    actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
-    torch.save(actvs, output_dir / f"final.pt")
+    logger.info(f"collecting activations of model at state {cfg.state}")
 
-    if cfg.mode.intermediate:
-        for epoch in range(0, (cfg.optimizer.epochs if cfg.mode == "train" else 2), 5):
-            logger.info(f"collecting activations of model at epoch {epoch}")
-            model = build_model()
-            collector = ActivationCollector(
-                model,
-                model_name=f"{cfg.experiment_name}_epoch_{epoch}",
-                dataset=probeset,
-                device=device,
-                num_samples=128
-                )
-            collector.import_pt(dir / f"epoch_{epoch}.pt")
-            actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
-            torch.save(actvs, output_dir / f"epoch_{epoch}.pt")
+    if cfg.state == "final":
+        model_states = ["final"]
+    elif cfg.state == "epoch":
+        opt_path = Path(f"configs/optimizer/{cfg.optimizer.name}.yaml")
+        epochs = OmegaConf.load(opt_path).epochs if cfg.mode.mode == "train" else 2
+        model_states = [f"epoch_{n}" for n in range(0, epochs, int(epochs/20.))]
+
+    for s in model_states:
+        model = build_model()
+        collector = ActivationCollector(
+            model,
+            model_name=f"{cfg.experiment_name}_final",
+            dataset=probeset,
+            device=device,
+            num_samples=128
+            )
+        collector.import_pt(dir / f"{s}.pt")
+        actvs = collector.compute_activations() # actvs = {layer_name: [n_samples, n_channels, dim_x, dim_y]}
+        torch.save(actvs, output_dir / f"{s}.pt")
 
 if __name__ == "__main__":
     main()

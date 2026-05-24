@@ -40,10 +40,7 @@ def main():
     torch.manual_seed(SEED)
 
     data_dir = Path(DATA_DIR)
-    if not data_dir.exists():
-        raise FileNotFoundError(
-            f"./data folder not found. Are you running the script in root folder?"
-        )
+    data_dir.mkdir(parents=True, exist_ok=True)
     
     full_train_dataset = torchvision.datasets.CIFAR10(root = data_dir, train = True, download = True)
     test_dataset = torchvision.datasets.CIFAR10(root = data_dir, train = False, download = True)

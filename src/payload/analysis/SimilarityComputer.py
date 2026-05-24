@@ -14,6 +14,12 @@ import matplotlib.cm as cm
 import torch
 from torch import Tensor
 
+def epochs_to_states(epochs: int, partitions: int) -> list:
+    if epochs % partitions != 0:
+        raise ValueError("Incompatible values of 'epochs' and 'partitions.'")
+    intv = int(epochs/partitions)
+    return [f"epoch_{intv * n}" for n in range(partitions)]
+
 class SimilarityComputer():
     """
     A class which uses neuron activations to compute and visualize layer similarities
@@ -48,8 +54,6 @@ class SimilarityComputer():
         self._metric = metric
         for La, Lb in itertools.product(list(self.activations_a.keys()), self.activations_b.keys()):
             self.similarities[(La, Lb)] = _compute_similarity(self.activations_a[La], self.activations_b[Lb])
-        if self.output_dir:
-            torch.save(self.similarities, self.output_dir / f"{self.experiment_name}_{metric}_{self.model_state}.pt")
 
     def _hsic(self, K: Tensor, L: Tensor):
         """Computes Hilbert-Schmidt Independence Criterion (HSIC)"""
@@ -81,7 +85,21 @@ class SimilarityComputer():
         
         return cka_score.item()
     
-    def _compute_pwcca(self, features_a: Tensor, features_b: Tensor, epsilon: float = 1e-8) -> float:
+    def svd_prune(self, K: torch.Tensor, threshold: float = 0.99) -> torch.Tensor:
+        """
+        Prunes the matrix K to the subspace which explains a threshold amount of variance of K
+        """
+        K_centered = K - K.mean(dim=0)
+        U, S, _ = torch.linalg.svd(K_centered, full_matrices=False)
+        eig_squared = S ** 2
+        explained_var = eig_squared / torch.sum(eig_squared)
+        cum_var = torch.cumsum(explained_var, dim=0)
+    
+        k = (cum_var >= threshold).nonzero(as_tuple=True)[0][0].item() + 1
+        K_pruned = U[:, :k] * S[:k]
+        return K_pruned
+    
+    def _compute_pwcca(self, features_a: Tensor, features_b: Tensor, keep_variance: float = 0.99, epsilon: float = 1e-8) -> float:
         """
         Computes Projected Weighted Canonical Correlation Analysis (PWCCA) metric for two
         activation matrices with shape (n_samples, c, h, w)
@@ -91,11 +109,14 @@ class SimilarityComputer():
         if features_b.dim() == 4:
             features_b = features_b.view(features_b.size(0), -1)
 
-        n, da = features_a.shape
-        _, db = features_b.shape
+        pruned_a = self._svd_prune(features_a, threshold=keep_variance)
+        pruned_b = self._svd_prune(features_b, threshold=keep_variance)
 
-        centered_features_a = features_a - features_a.mean(dim=0)
-        centered_features_b = features_b - features_b.mean(dim=0)
+        n, da = pruned_a.shape
+        _, db = pruned_b.shape
+
+        centered_features_a = pruned_a - pruned_a.mean(dim=0)
+        centered_features_b = pruned_b - pruned_b.mean(dim=0)
 
         S_aa = (centered_features_a.T @ centered_features_a) / (n - 1) # (da, da)
         S_bb = (centered_features_b.T @ centered_features_b) / (n - 1)
@@ -106,7 +127,7 @@ class SimilarityComputer():
         def _inv_sqrt(K: Tensor) -> Tensor:
             """Computes inverse square root K^{-1/2} of K"""
             evals, evecs = torch.linalg.eigh(K)
-            evals = torch.clamp(evals, min=epsilon) 
+            evals = torch.clamp(evals, min=epsilon)
             inv_sqrt = torch.diag(1.0 / torch.sqrt(evals))
             return evecs @ inv_sqrt @ evecs.T
         
@@ -125,10 +146,11 @@ class SimilarityComputer():
         Writes similarity dictionary to output folder for easy downstream retrieval and analysis
         """
         output_dir = Path(output_folder if output_folder is not None else self.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
         output_dir = output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.pt"
         torch.save(self.similarities, output_dir)
 
-    def plot_similarities(self, title: str = "Title") -> None:
+    def plot_similarities(self, title: str = "Title", output_folder: str = None) -> None:
         """
         Generates a plot of similarities, with activations_a on the x-axis and activations_b on the y-axis.
         """
@@ -152,11 +174,12 @@ class SimilarityComputer():
         ax.set_yticks(np.arange(len(self.layers_a)), labels=self.layers_a)
         ax.invert_yaxis()
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
         cbar = ax.figure.colorbar(im, ax=ax)
         cbar.ax.set_ylabel(f"{metric_str} Similarity", rotation=-90, va="bottom")
         ax.set_title(title)
-
         plt.tight_layout()
-        if self.output_dir:
-            plt.savefig(self.output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.png")
+
+        output_dir = Path(output_folder if output_folder is not None else self.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.png"
+        plt.savefig(output_dir)
