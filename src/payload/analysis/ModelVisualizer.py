@@ -1,0 +1,78 @@
+"""
+Lightweight class for visualizing models
+"""
+import numpy as np
+from matplotlib import pyplot as plt
+from pathlib import Path
+
+import torch
+from torch import nn
+from torch.utils.data import Dataset, DataLoader
+from payload.data.cifar10 import cifar_inverse_transform
+
+class ModelVisualizer():
+    """
+    A class which handles i/o of model weights, sets up hooks, and analyzes activations
+    """
+    def __init__(
+            self,
+            model: nn.Module,
+            model_name: str,
+            device: str = "cpu",
+            num_samples: int = 16
+    ):
+        self.model = model
+        self.model_name = model_name
+        self.device = device
+        self.num_samples = num_samples
+
+    def forward_data(self, dataset: Dataset) -> None:
+        self.dataset = dataset
+        img_loader = DataLoader(self.dataset, batch_size=self.num_samples, shuffle=True)
+        self.xs, _ = next(iter(img_loader)) # torch.Size([num_samples, 3, 32, 32])
+        self.xs_rec = cifar_inverse_transform()(self.model(self.xs))
+        self.xs_rec = self.xs_rec.detach().numpy()
+        self.xs = cifar_inverse_transform()(self.xs).detach().numpy()
+
+    def import_pt(self, input_dir: str | Path) -> None:
+        pt_dict = torch.load(Path(input_dir))
+        model_weights = pt_dict["model_state"]
+        self._assert_state_dict(self.model, model_weights)
+        self.model.load_state_dict(model_weights)
+
+    def generate_plots(self, output_dir: str | Path) -> None:
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+        # Function to plot a 4x4 grid on a specific axis
+        def _plot_4x4_grid(ax, images, title):
+            ax.axis('off')
+            ax.set_title(title, fontsize=14, pad=15)
+            
+            # Create an empty canvas to stitch the 16 images together into one large 4x4 image
+            # (4 images * 32 pixels) = 128 pixels wide/high
+            grid = np.zeros((4 * 32, 4 * 32, 3))
+            
+            idx = 0
+            for r in range(4):
+                for c in range(4):
+                    x = c * 32
+                    y = r * 32
+                    grid[y:y+32, x:x+32, :] = images[idx]
+                    idx += 1
+                    
+            ax.imshow(grid)
+
+        _plot_4x4_grid(axes[0], np.transpose(self.xs, (0, 2, 3, 1)), "Original Images")
+        _plot_4x4_grid(axes[1], np.transpose(self.xs_rec, (0, 2, 3, 1)), "Reconstructed Images")
+        plt.savefig(output_dir)
+        print(f"Plot successfully saved to: {output_dir}")
+        plt.close()
+
+    def _assert_state_dict(self, model, state_dict) -> None:
+        model_state = model.state_dict()
+        for key, value in state_dict.items():
+            if key in model_state:
+                assert value.shape == model_state[key].shape, \
+                    f"Shape mismatch for {key}: checkpoint {value.shape} vs model {model_state[key].shape}"
+            else:
+                print(f"Warning: {key} not found in model state_dict")

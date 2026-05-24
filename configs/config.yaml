@@ -25,6 +25,9 @@ net_2:
 
 sim_metric: cka
 
+# Visualization
+file_pt: final # epoch_n or final
+
 # Weights and Biases (used for logging)
 wandb:
   enabled: true
