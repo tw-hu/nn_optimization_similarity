@@ -31,7 +31,6 @@ def main(cfg: DictConfig):
     probeset = build_cifar(Path(cfg.data_dir), "val", mini=True)
 
     logger.info(f"collecting activations of model at state {cfg.state}")
-
     if cfg.state == "final":
         model_states = ["final"]
     elif cfg.state == "epoch":

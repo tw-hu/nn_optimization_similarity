@@ -27,6 +27,7 @@ sim_metric: cka
 
 # Visualization
 file_pt: final # epoch_n or final
+which_plot: 1 # used in scripts/analysis_plots.py
 
 # Weights and Biases (used for logging)
 wandb:

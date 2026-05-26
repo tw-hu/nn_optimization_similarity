@@ -6,6 +6,29 @@ from collections import OrderedDict
 import torch
 from torch import nn
 
+LAYERS = [
+    "_enc.block1.conv1_1",
+    "_enc.block1.conv1_2",
+    "_enc.block2.conv2_1",
+    "_enc.block2.conv2_2",
+    "_enc.block2.conv2_3",
+    "_enc.block3.conv3_1",
+    "_enc.block3.conv3_2",
+    "_enc.block3.conv3_3",
+    "_enc.block4.conv4_1",
+    "_enc.block4.conv4_2",
+    "_enc.block4.conv4_3"
+]
+
+BLOCK_LAYERS = {
+        "b1_out": "_enc.block1.conv1_2",
+        "b2_out": "_enc.block2.conv2_3",
+        "b3_out": "_enc.block3.conv3_3",
+        "b4_out": "_enc.block4.conv4_3"
+    }
+
+SEEDS = range(10)
+
 def get_activation(activation: str = 'relu'):
     activations = {
         'relu': nn.ReLU,

@@ -1,0 +1,226 @@
+"""
+Scripts for making plots for analysis
+"""
+import matplotlib.pyplot as plt
+from itertools import product, combinations
+import torch
+import numpy as np
+
+from pathlib import Path
+import logging
+import hydra
+from omegaconf import DictConfig
+
+from payload.models.ConvClassifier import BLOCK_LAYERS, SEEDS
+from payload.analysis.MultiPlot import MultiPlot, COLORS
+from payload.analysis.analysis_scripts import get_agg_metric, pt_to_matrix, to_distance, distances_to_coords
+
+logger = logging.getLogger(__name__)
+
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
+def main(cfg: DictConfig):
+
+    OPTIMIZERS = {"adamw", "adam_atan2", "sgd"}
+    optim_pairs = list(product(OPTIMIZERS, repeat=2))
+    optim_combs = list(combinations(OPTIMIZERS, r=2))
+
+    METRICS = {"cka", "pwcca"}
+    AGG_METRICS = {
+        "MDS": "Mean Diagonal Similarity",
+        "BDS": "Banded Diagonal Similarity",
+        "TTS": "Trace-to-Sum ratio"
+        }
+    VIS_METHODS = {
+        "mds": "Multi-Dimensional Scaling",
+        "isomap": "Isomap"
+        }
+
+    PLOT_DIR = "plots"
+
+    """
+    File conventions:
+
+        - Similarities: outputs/similarities/trainmode_opA_{opA}_{seedA}_opB_{opB}_{seedB}_{sim_metric}_{epoch}.pt
+        - State_dicts:
+            experiments/trainmode_run_optimizer_{op}_seed{seed}/epoch_95.pt
+            experiments/trainmode_run_optimizer_{op}_seed{seed}/final.pt
+
+    File contents:
+
+        - Similarities: {(layer_a, layer_b): sim}
+        - State_dicts: {
+                        "model_state": model.state_dict(),
+                        "metrics": {"train/loss": val, "val/loss": val}
+                        }
+    """
+
+    if cfg.which_plot == 1:
+        """                                                                                                                                                                                                           
+        Plots the similarity between the outputs of each encoder block between pairs of                                                                                                                               
+        optimizers from {adamw, adam_atan2, sgd}, as a function of training epoch.                                                                                                                                    
+        """
+        for metric in METRICS:
+            for (o1, o2) in optim_pairs:
+
+                title = f"{metric.upper()} Similarity between CAEs Trained\nUsing {o1}, {o2} Optimizers"
+                filename = f"plot_1_{metric}_{o1}_{o2}.png"
+                logger.info(f"beginning creation of {filename}")
+
+                try:
+                    ys = {}
+                    for L in BLOCK_LAYERS:
+                        ys[L] = []
+                    for e in range(20):
+                        file_dir = f"outputs/similarities/trainmode_opA_{o1}_0_opB_{o2}_0_{metric}_{e}.pt"
+                        file_pt = torch.load(file_dir, map_location=cfg.device if torch.cuda.is_available() else "cpu")
+                        for L in BLOCK_LAYERS:
+                            ys[L].append(file_pt[(BLOCK_LAYERS[L], BLOCK_LAYERS[L])])
+
+                    xs = np.array(range(20))/20.
+                    plot = MultiPlot(xs=xs, title=title)
+                    for L in BLOCK_LAYERS:
+                        plot.add_line((L,ys[L]), marker='o')
+                    plot.create_plot(x_label="Fraction of Total Epochs", y_label="Layer Similarity")
+                    plot.save_fig(output_dir=PLOT_DIR, filename=filename)
+                    logger.info(f"plot {cfg.which_plot} saved at: {PLOT_DIR}/{filename}")
+                except:
+                    logger.info("error occurred, skipping this item...")
+                    continue
+
+    if cfg.which_plot == 2:
+        """
+        Fix single instance of NN. Plot similarity of a given layer at epoch n/num_epochs
+        vs final as a function of fraction of total epoch.
+        """
+        for metric in METRICS:
+            for optim in OPTIMIZERS:
+                title = f"{metric.upper()} Similarity between CAE-In-Training\nVersus Final State, Optimized Using {optim}"
+                filename = f"plot_2_{metric}_{optim}.png"
+
+                ys = {}
+                ys_diff = {}
+
+                for L in BLOCK_LAYERS:
+                    ys[L] = []
+                for e in range(20):
+                    file_dir = f"outputs/similarities/trainmode_opA_{optim}_0_opB_{optim}_0_{metric}_{e}_v_final.pt"
+                    file_pt = torch.load(file_dir, map_location=cfg.device if torch.cuda.is_available() else "cpu")
+                    for L in BLOCK_LAYERS:
+                        ys[L].append(file_pt[(BLOCK_LAYERS[L], BLOCK_LAYERS[L])])
+
+                xs = np.array(range(20))/20.
+                plot = MultiPlot(xs=xs, title=title)
+                for L in BLOCK_LAYERS:
+                    plot.add_line((L,ys[L]))
+                plot.create_plot(x_label="Fraction of Total Epochs", y_label="Layer Similarity")
+                plot.save_fig(output_dir=PLOT_DIR, filename=filename)
+                logger.info(f"plot {cfg.which_plot} saved at: {PLOT_DIR}/{filename}")
+
+                """
+                Now compute similarity deltas and plot against time, normalized by area under curve.
+                Superpose normalized cosine.
+                """
+
+                title = f"Deltas of {metric.upper()} Similarity between\nCAE-In-Training Versus Final State, Optimized Using {optim}"
+                filename = f"plot_2a_{metric}_{optim}.png"
+
+                plot = MultiPlot(xs=xs, title=title, cosine_overlay=True)
+                for L in BLOCK_LAYERS:
+                    ys_diff[L] = [0]
+                    for i in range(19):
+                        ys_diff[L].append(ys[L][i+1] - ys[L][i])
+                    ys_diff[L] = np.array(ys_diff[L])
+
+                ys_diff_total =	[]
+                for i in range(20):
+                    ys_diff_total.append(np.sum([ys_diff[L][i] for L in BLOCK_LAYERS]))
+                ys_diff_total = np.array(ys_diff_total)
+                for L in BLOCK_LAYERS:
+                    ys_diff[L] = ys_diff[L] * 0.5 / (np.sum(ys_diff_total)/20.) # normalize to area 1/2 under curve
+                    plot.add_line((L,ys_diff[L]), linestyle='-')
+                
+                ys_diff_total = ys_diff_total * 0.5 / (np.sum(ys_diff_total)/20.)
+                plot.add_line(("Net Similarity Delta", ys_diff_total))
+
+                plot.create_plot(x_label="Fraction of Total Epochs", y_label="Layer Similarity")
+                plot.save_fig(output_dir=PLOT_DIR, filename=filename)
+                logger.info(f"plot 2a saved at: {PLOT_DIR}/{filename}")
+
+    if cfg.which_plot == 3:
+        """
+        Plot aggregate similarity (among sgd, adamw, adam_atan2) against training epoch
+            * how does overall similarity change with training time?
+        """
+        for agg in AGG_METRICS.keys():
+            agg_metric = get_agg_metric(agg)
+            for metric in METRICS:
+                ys = {}
+                for (o1, o2) in optim_combs:
+
+                    title = f"Aggregate {metric.upper()} Similarity between CAEs\nTrainedUsing {o1}, {o2} Optimizers"
+                    filename = f"plot_3_{agg.lower()}_{metric}_{o1}_{o2}.png"
+
+                    ys[(o1, o2)] = []
+                    for e in range(20):
+                        file_dir = f"outputs/similarities/trainmode_opA_{o1}_0_opB_{o2}_0_{metric}_{e}.pt"
+                        file_pt = torch.load(file_dir, map_location=cfg.device if torch.cuda.is_available() else "cpu")
+                        sim_matrix = pt_to_matrix(file_pt)
+                        ys[(o1, o2)].append(agg_metric(sim_matrix))
+
+                xs = np.array(range(20))/20.
+                plot = MultiPlot(xs=xs, title=title)
+                for (o1, o2) in ys.keys():
+                    label = f"Sim({o1}, {o2})"
+                    plot.add_line((label,ys[(o1, o2)]))
+                plot.create_plot(x_label="Fraction of Total Epochs", y_label="Aggregate Similarity")
+                plot.save_fig(output_dir=PLOT_DIR, filename=filename)
+                logger.info(f"plot {cfg.which_plot} saved at: {PLOT_DIR}/{filename}")
+
+    if cfg.which_plot == 4:
+        """
+        - Low-dimensional visualization of neural network similarity based on their aggregate similarity score (MDS, t-SNE)
+        * use CKA distance as metric (PWCCA too slow)
+        * clustering?
+        """
+
+        # metric = "cka" only
+        for method in VIS_METHODS.keys():
+            for agg in AGG_METRICS.keys():
+                agg_metric = get_agg_metric(agg)
+
+                title = f"Space of Trained CAEs ({VIS_METHODS[method]})\nwith Aggregate Metric {AGG_METRICS[agg]}"
+                filename = f"plot_4_{agg.lower()}_{VIS_METHODS[method]}_.png"
+
+                # Dict: {((label_1, seed_1), (label_2, seed_2)): distance}
+                vis_dict = {}
+                for (o1, o2) in optim_combs:
+                    for (s1, s2) in list(product(SEEDS, repeat=2)):
+                        file_dir = f"outputs/similarities/trainmode_opA_{o1}_{s1}_opB_{o2}_{s2}_cka_final.pt"
+                        file_pt = torch.load(file_dir, map_location=cfg.device if torch.cuda.is_available() else "cpu")
+                        sim_matrix = pt_to_matrix(file_pt)
+                        sim = agg_metric(sim_matrix)
+                        vis_dict[(o1, s1), (o2, s2)] = to_distance(sim)
+                
+                coord_dict = distances_to_coords(vis_dict, method=method) # Dict: {(label, seed): (x, y)}                                                                                                             
+                plot_dict = {}
+                for (l, _), (x, y) in coord_dict.items():
+                    if l not in plot_dict.keys():
+                        plot_dict[l] = ([], [])
+                    plot_dict[l][0].append(x)
+                    plot_dict[l][1].append(y)
+
+                plt.figure(figsize=(8, 5))
+                plt.title(title)
+                for l in plot_dict.keys():
+                    plt.scatter(x, y, label=l, c=COLORS[:len(plot_dict)])
+                plt.legend()
+
+                dir = Path(PLOT_DIR)
+                dir.mkdir(parents=True, exist_ok=True)
+                dir = dir / filename
+                plt.savefig(dir, bbox_inches='tight')
+                print(f"Plot successfully saved to: {dir}")
+                plt.close()
+
+if __name__ == "__main__":
+    main()

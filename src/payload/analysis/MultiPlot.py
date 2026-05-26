@@ -1,0 +1,78 @@
+"""
+Plotting class
+"""
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import numpy as np
+
+from pathlib import Path
+
+from payload.models.ConvClassifier import LAYERS
+
+COLORS = ['#B38B00', '#FF6666', '#800000', '#341F16', '#BA55D3']
+cmap_name = 'yellow-to-maroon'
+custom_cmap = mcolors.LinearSegmentedColormap.from_list(cmap_name, COLORS)
+
+"""
+File structures:
+
+similarity.pt: {(La_net_1, Lb_net 2): sim_val}
+state_dict.pt: {
+                "metrics": {"train/loss": loss, "val/loss": loss}
+               }
+"""
+
+class MultiPlot:
+    """
+    Class used to create similarity plots with multiple lines
+    """
+    def __init__(self, xs, title, colors=None, cosine_overlay: bool = False):
+        self.xs = xs
+        self.ys = {}
+        self.title = title
+        self.legend = []  # Changed to a list to keep track of names in order
+        self.colors = colors if colors else ['blue', 'orange', 'green', 'red', 'purple', 'brown']
+        self.cosine_overlay = cosine_overlay
+        self.line_kwargs = {} # Dictionary to store plotting arguments (e.g., markers)
+
+    def add_line(self, ys: tuple, **kwargs): 
+        # ys is expected to be a tuple: (name, [vals])
+        name, vals = ys
+        self.legend.append(name)
+        self.ys[name] = vals
+        self.line_kwargs[name] = kwargs
+
+    def create_plot(self, x_label: str, y_label: str) -> None:
+        plt.figure(figsize=(8, 5))
+        color_idx = 0
+        for name in self.legend:
+            vals = self.ys[name]
+            kwargs = self.line_kwargs[name]
+            
+            # Use the class color list if a specific color wasn't passed in kwargs
+            if 'color' not in kwargs and 'c' not in kwargs:
+                kwargs['color'] = self.colors[color_idx % len(self.colors)]
+                color_idx += 1
+                
+            plt.plot(self.xs, vals, label=name, **kwargs)
+
+        if self.cosine_overlay:
+            xs_np = np.array(self.xs)
+            cos_vals = np.cos(xs_np * np.pi / 2.) ** 2
+            plt.plot(self.xs, cos_vals, label="Cosine-Annealed LR", 
+                     linestyle='--', color='gray', alpha=0.6)
+
+        # Set plot details
+        plt.title(self.title)
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+
+    def save_fig(self, output_dir: str, filename: str = "multi_plot.png") -> None:
+        dir = Path(output_dir)
+        dir.mkdir(parents=True, exist_ok=True)
+        dir = dir / filename
+        plt.savefig(dir, bbox_inches='tight')
+        print(f"Plot successfully saved to: {dir}")
+        plt.close()

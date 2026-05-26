@@ -34,7 +34,7 @@ def main(cfg: DictConfig):
         similarity = SimilarityComputer(actv_a, actv_b, experiment_name=name, model_state="final")
         similarity.compute_similarities(metric=cfg.sim_metric)
         similarity.plot_similarities(title=f"Layer similarity at model state final")
-        similarity.write_similarities()
+        similarity.write_similarities(output_folder="outputs/similarities")
 
     elif cfg.state == "epoch":
         opt_path_a = Path(f"configs/optimizer/{cfg.net_1.optimizer}.yaml")
@@ -55,6 +55,25 @@ def main(cfg: DictConfig):
             similarity = SimilarityComputer(actv_a, actv_b, experiment_name=name, model_state=n)
             similarity.compute_similarities(metric=cfg.sim_metric) 
             similarity.plot_similarities(title=f"Layer similarity at model state epoch_fraction {n}/20")
+            similarity.write_similarities(output_folder="outputs/similarities")
+
+    elif cfg.state == "epoch_final":
+        logger.info(f"working on final state vs individual epochs...")
+        path_a = Path(f"experiments/{file_a}/activations/final.pt")
+        actv_a = torch.load(path_a, map_location=device) # {layer_name: [n_samples, n_channels, dim_x, dim_y]}
+
+        opt_path_b = Path(f"configs/optimizer/{cfg.net_2.optimizer}.yaml")
+        epochs_b = OmegaConf.load(opt_path_b).epochs if cfg.mode.mode == "train" else 2
+        states_b = epochs_to_states(epochs_b, 20)
+
+        for n, s in enumerate(states_b):
+            logger.info(f"comparing final with state number {n}/20...")
+            path_b = Path(f"experiments/{file_a}/activations/{s}.pt")
+            actv_b = torch.load(path_b, map_location=device)
+
+            similarity = SimilarityComputer(actv_b, actv_a, experiment_name=name, model_state=f"{n}_v_final")
+            similarity.compute_similarities(metric=cfg.sim_metric)
+            similarity.plot_similarities(title=f"{cfg.sim_metric} similarity between state {s} and final state")
             similarity.write_similarities(output_folder="outputs/similarities")
 
 if __name__ == "__main__":
