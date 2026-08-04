@@ -1,0 +1,75 @@
+"""
+Finding optimal learning rates using cyclical learning rate method of https://arxiv.org/abs/1506.01186
+"""
+
+import logging
+from pathlib import Path
+from matplotlib import pyplot as plt
+
+import torch
+from torch import nn
+from torch.amp import GradScaler
+import hydra
+from omegaconf import DictConfig
+
+from torch_lr_finder import LRFinder
+
+from payload.data.cifar10 import build_cifar, build_dataloader
+from payload.training.optim import build_optimizer
+from payload.models.ConvClassifier import build_model
+from payload.utils.utils import set_seed
+
+logger = logging.getLogger(__name__)
+
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
+def main(cfg: DictConfig):
+    print(torch.cuda.is_available())
+    print(torch.version.cuda)
+
+    seed = 10 # none of the runs in actual experiments use this seed
+    set_seed(seed)
+
+    # Data
+    train_set = build_cifar(Path(cfg.data_dir), "train", mini=cfg.mode.mini)
+    train_loader = build_dataloader(
+        train_set,
+        batch_size=cfg.optimizer.batch_size,
+        num_workers=cfg.num_workers,
+        seed=seed,
+        pin_memory=(cfg.device == "cuda" and torch.cuda.is_available()))
+
+    # Model + optimizer
+    device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
+    model = build_model()
+    optimizer = build_optimizer(
+            model,
+            optimizer=cfg.optimizer.name,
+            lr=1e-6, # initial learning rate
+            weight_decay=cfg.optimizer.weight_decay,
+        )
+    criterion = nn.MSELoss()
+    grad_scaler = GradScaler()
+    amp_config = {
+        "device_type": cfg.device if torch.cuda.is_available() else "cpu",
+        "enabled": True
+    }
+    
+    lr_finder = LRFinder(
+        model,
+        optimizer,
+        criterion,
+        device=cfg.device if torch.cuda.is_available() else "cpu",
+        amp_backend="torch",
+        amp_config=amp_config,
+        grad_scaler=grad_scaler
+        )
+    lr_finder.range_test(train_loader, end_lr=1e-1, num_iter=100)
+    lr_finder.plot()
+
+    path = "experiments/lr_tuning"
+    output_dir = Path(path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plt.savefig(f"{path}/{cfg.experiment_name}.png")
+
+if __name__ == "__main__":
+    main()

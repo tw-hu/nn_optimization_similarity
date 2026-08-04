@@ -2,14 +2,14 @@
 
 import torch
 from torch import nn
-from torch.optim import AdamW, SGD
+from torch.optim import Adam, AdamW, SGD
 from adam_atan2_pytorch import AdamAtan2
 
 def build_optimizer(
         model: nn.Module,
         optimizer: str,
         lr: float,
-        weight_decay: float = 5e-4,
+        weight_decay: float = 5.0e-3,
         betas: tuple[float, float] = (0.9, 0.999),
         momentum: float = 0.9,
         nesterov: bool = True,
@@ -36,6 +36,8 @@ def build_optimizer(
         return AdamAtan2(hypers, lr=lr, betas=betas)
     elif optimizer == "adamw":
         return AdamW(hypers, lr=lr, betas=betas)
+    elif optimizer == "adam":
+        return Adam(hypers, lr=lr, betas=betas)
     elif optimizer == "sgd":
         return SGD(hypers, lr=lr, momentum=momentum, nesterov=nesterov)
 

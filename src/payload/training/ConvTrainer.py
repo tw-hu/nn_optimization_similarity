@@ -54,25 +54,35 @@ class ConvTrainer:
         self.on_epoch_end = on_epoch_end
 
     def fit(self):
-        # best_top1 = 0.0 # tracks best accuracy
+        val_metrics = self._evaluate()
+        metrics = {
+            **val_metrics,
+            "epoch": "init"
+        }
+        self._save(f"init.pt", self.output_dir, metrics)
+
         for epoch in range(self.epochs):
             train_metrics = self._train_one_epoch(epoch)
             val_metrics = self._evaluate()
             if self.scheduler is not None:
                 self.scheduler.step()
-            
             metrics = {
                 **train_metrics,
                 **val_metrics,
-                "epoch": float(epoch),
-                "lr": self.optimizer.param_groups[0]["lr"]
+                "epoch": float(epoch)
             }
             logger.info("epoch %d: %s", epoch, metrics)
             if self.on_epoch_end is not None:
                 self.on_epoch_end(epoch, metrics)
             if epoch % self.save_every == 0:
-                self._save(f"epoch_{epoch}.pt", self.output_dir, epoch, metrics)
-        self._save(f"final.pt", self.output_dir, epoch, metrics)
+                self._save(f"epoch_{epoch}.pt", self.output_dir, metrics)
+        
+        val_metrics = self._evaluate()
+        metrics = {
+            **val_metrics,
+            "epoch": "final"
+        }
+        self._save(f"final.pt", self.output_dir, metrics)
         
         return metrics
 
@@ -131,7 +141,7 @@ class ConvTrainer:
             "val/loss": total_loss / max(n, 1)
         }
 
-    def _save(self, name: str, dir: str | Path, epoch: int, metrics: dict[str, float]):
+    def _save(self, name: str, dir: str | Path, metrics: dict[str, float]):
         """saves model weights and trainer state"""
         # path = self.output_dir / name
         dir.mkdir(parents=True, exist_ok=True)

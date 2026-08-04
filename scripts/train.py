@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
     set_seed(cfg.seed)
-    output_dir = Path(cfg.output_dir)
+    output_dir = Path(cfg.experiment_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Logging (weights and biases)

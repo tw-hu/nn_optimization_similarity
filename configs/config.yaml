@@ -7,13 +7,18 @@ seed: 10
 device: cuda
 num_workers: 4
 
+# Generic output directory
+output_dir: outputs
+
 # Data
 data_dir: data
+
+# Experiments
 experiment_name: ${mode.mode}mode_run_optimizer_${optimizer.name}_seed${seed}
-output_dir: experiments/${experiment_name}
+experiment_dir: experiments/${experiment_name}
 
 # Similarity Analysis
-state: epoch # final or epoch
+state: final # final or epoch
 
 net_1:
   optimizer: adam_atan2
@@ -38,4 +43,4 @@ wandb:
 # Hydra (used for output)
 hydra:
   run:
-    dir: ${output_dir}
+    dir: logs

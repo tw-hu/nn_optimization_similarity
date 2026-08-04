@@ -1,4 +1,4 @@
-name: adamw
+name: adam
 lr: 2.78e-3
 weight_decay: 5.0e-3
 beta1: 0.9

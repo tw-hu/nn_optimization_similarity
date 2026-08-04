@@ -77,7 +77,7 @@ def main(cfg: DictConfig):
                             ys[L].append(file_pt[(BLOCK_LAYERS[L], BLOCK_LAYERS[L])])
 
                     xs = np.array(range(21))/20.
-                    plot = MultiPlot(xs=xs, title=title, colors=COLORS)
+                    plot = MultiPlot(xs=xs, title=title)
                     for L in BLOCK_LAYERS:
                         plot.add_line((L,ys[L]), marker='o')
                     plot.create_plot(x_label="Fraction of Total Epochs", y_label="Layer Similarity")
@@ -110,7 +110,7 @@ def main(cfg: DictConfig):
                         ys[L].append(file_pt[(BLOCK_LAYERS[L], BLOCK_LAYERS[L])])
 
                 xs = np.array(range(20))/20.
-                plot = MultiPlot(xs=xs, title=title, colors=COLORS)
+                plot = MultiPlot(xs=xs, title=title)
                 for L in BLOCK_LAYERS:
                     plot.add_line((L,ys[L]), marker='o')
                 plot.create_plot(x_label="Fraction of Total Epochs", y_label="Layer Similarity")
@@ -125,7 +125,7 @@ def main(cfg: DictConfig):
                 title = f"Deltas of {metric.upper()} Similarity between\nCAE-In-Training Versus Final State, Optimized Using {optim}"
                 filename = f"plot_2a_{metric}_{optim}.png"
 
-                plot = MultiPlot(xs=xs, title=title, colors=COLORS, cosine_overlay=True)
+                plot = MultiPlot(xs=xs, title=title, cosine_overlay=True)
                 for L in BLOCK_LAYERS:
                     ys_diff[L] = [0]
                     for i in range(19):
@@ -169,7 +169,7 @@ def main(cfg: DictConfig):
                         ys[(o1, o2)].append(agg_metric(sim_matrix))
 
                 xs = np.array(range(20))/20.
-                plot = MultiPlot(xs=xs, title=title, colors=COLORS)
+                plot = MultiPlot(xs=xs, title=title)
                 for (o1, o2) in ys.keys():
                     label = f"Sim({o1}, {o2})"
                     plot.add_line((label,ys[(o1, o2)]), marker='o')

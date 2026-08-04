@@ -18,7 +18,10 @@ def epochs_to_states(epochs: int, partitions: int) -> list:
     if epochs % partitions != 0:
         raise ValueError("Incompatible values of 'epochs' and 'partitions.'")
     intv = int(epochs/partitions)
-    return [f"epoch_{intv * n}" for n in range(partitions)]
+    states = ["init"]
+    for n in range(partitions):
+        states.append(f"epoch_{intv * n}")
+    return states
 
 class SimilarityComputer():
     """
@@ -64,6 +67,7 @@ class SimilarityComputer():
         L_centered = torch.matmul(torch.matmul(H, L), H)
 
         hsic_val = torch.trace(torch.matmul(K_centered, L_centered)) / ((n - 1)**2)
+        
         return hsic_val
 
     def _compute_cka(self, features_a: Tensor, features_b: Tensor) -> float:
@@ -85,7 +89,7 @@ class SimilarityComputer():
         
         return cka_score.item()
     
-    def svd_prune(self, K: torch.Tensor, threshold: float = 0.99) -> torch.Tensor:
+    def _svd_prune(self, K: torch.Tensor, threshold: float = 0.99) -> torch.Tensor:
         """
         Prunes the matrix K to the subspace which explains a threshold amount of variance of K
         """
@@ -97,6 +101,7 @@ class SimilarityComputer():
     
         k = (cum_var >= threshold).nonzero(as_tuple=True)[0][0].item() + 1
         K_pruned = U[:, :k] * S[:k]
+        
         return K_pruned
     
     def _compute_pwcca(self, features_a: Tensor, features_b: Tensor, keep_variance: float = 0.99, epsilon: float = 1e-8) -> float:
@@ -114,7 +119,14 @@ class SimilarityComputer():
 
         n, da = pruned_a.shape
         _, db = pruned_b.shape
+        pruned_a = self._svd_prune(features_a, threshold=keep_variance)
+        pruned_b = self._svd_prune(features_b, threshold=keep_variance)
 
+        n, da = pruned_a.shape
+        _, db = pruned_b.shape
+
+        centered_features_a = pruned_a - pruned_a.mean(dim=0)
+        centered_features_b = pruned_b - pruned_b.mean(dim=0)
         centered_features_a = pruned_a - pruned_a.mean(dim=0)
         centered_features_b = pruned_b - pruned_b.mean(dim=0)
 
@@ -127,6 +139,7 @@ class SimilarityComputer():
         def _inv_sqrt(K: Tensor) -> Tensor:
             """Computes inverse square root K^{-1/2} of K"""
             evals, evecs = torch.linalg.eigh(K)
+            evals = torch.clamp(evals, min=epsilon)
             evals = torch.clamp(evals, min=epsilon)
             inv_sqrt = torch.diag(1.0 / torch.sqrt(evals))
             return evecs @ inv_sqrt @ evecs.T
@@ -147,10 +160,11 @@ class SimilarityComputer():
         """
         output_dir = Path(output_folder if output_folder is not None else self.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
         output_dir = output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.pt"
         torch.save(self.similarities, output_dir)
 
-    def plot_similarities(self, title: str = "Title", output_folder: str = None) -> None:
+    def plot_similarities(self, title: str = "Title", output_folder: Path | str = None, transparent: bool = False) -> None:
         """
         Generates a plot of similarities, with activations_a on the x-axis and activations_b on the y-axis.
         """
@@ -181,5 +195,6 @@ class SimilarityComputer():
 
         output_dir = Path(output_folder if output_folder is not None else self.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        output_dir = output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.png"
-        plt.savefig(output_dir)
+        output_path = output_dir / f"{self.experiment_name}_{self._metric}_{self.model_state}.png"
+        plt.savefig(output_path, transparent=transparent)
+        plt.close()

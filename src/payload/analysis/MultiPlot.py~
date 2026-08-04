@@ -1,4 +1,4 @@
-"""
+q"""
 Plotting class
 """
 import matplotlib.pyplot as plt

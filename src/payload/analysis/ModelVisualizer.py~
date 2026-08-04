@@ -65,8 +65,6 @@ class ModelVisualizer():
         _plot_4x4_grid(axes[0], np.transpose(self.xs, (0, 2, 3, 1)), "Original CIFAR-10 Images")
         _plot_4x4_grid(axes[1], np.transpose(self.xs_rec, (0, 2, 3, 1)), f"Reconstructions by\n{self.model_name}")
         plt.savefig(output_dir)
-        print(f"Plot successfully saved to: {output_dir}")
-        plt.close()
 
     def _assert_state_dict(self, model, state_dict) -> None:
         model_state = model.state_dict()

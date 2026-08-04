@@ -41,7 +41,7 @@ class ActivationCollector():
         self._temp_activations = {} # {layer_name: [n_samples, n_channels, dim_x, dim_y]}
 
     def import_pt(self, input_dir: str | Path):
-        pt_dict = torch.load(Path(input_dir))
+        pt_dict = torch.load(Path(input_dir), map_location=self.device)
         model_weights = pt_dict["model_state"]
         self._epoch = pt_dict["metrics"]["epoch"]
         self._lr = pt_dict["metrics"]["lr"]
