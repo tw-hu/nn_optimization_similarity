@@ -57,11 +57,11 @@ class ConvTrainer:
         val_metrics = self._evaluate()
         metrics = {
             **val_metrics,
-            "epoch": "init"
+            "epoch": "0"
         }
-        self._save(f"init.pt", self.output_dir, metrics)
+        self._save(f"epoch_0.pt", self.output_dir, metrics)
 
-        for epoch in range(self.epochs):
+        for epoch in range(1, self.epochs+1):
             train_metrics = self._train_one_epoch(epoch)
             val_metrics = self._evaluate()
             if self.scheduler is not None:
@@ -76,13 +76,6 @@ class ConvTrainer:
                 self.on_epoch_end(epoch, metrics)
             if epoch % self.save_every == 0:
                 self._save(f"epoch_{epoch}.pt", self.output_dir, metrics)
-        
-        val_metrics = self._evaluate()
-        metrics = {
-            **val_metrics,
-            "epoch": "final"
-        }
-        self._save(f"final.pt", self.output_dir, metrics)
         
         return metrics
 

@@ -8,9 +8,9 @@
 /logs/
 
 conda_setup.sh
-conda_setup.sh~
 submit_jobs.sh
-submit_jobs.sh~
+
+*~
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

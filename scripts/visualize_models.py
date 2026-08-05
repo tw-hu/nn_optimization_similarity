@@ -23,17 +23,14 @@ def main(cfg: DictConfig):
     test_set = build_cifar(Path(cfg.data_dir), "test", mini=cfg.mode.mini)
 
     model = build_model()
-    visualizer = ModelVisualizer(
-        model,
-        model_name=f"{cfg.experiment_name}_{cfg.file_pt}",
-        num_samples=16
-    )
-    dir = Path("experiments") / cfg.experiment_name
-    visualizer.import_pt(dir / f"{cfg.file_pt}.pt")
-    visualizer.forward_data(test_set)
+    visualizer = ModelVisualizer(model)
+    visualizer.load_dataset(test_set)
+    visualizer.load_experiment(Path("experiments") / cfg.experiment_name)
 
-    output_dir = Path(f"outputs/plots/{cfg.experiment_name}_{cfg.file_pt}.png")
-    visualizer.generate_plots(output_dir=output_dir)
+    # output_dir = Path(f"outputs/plots/{cfg.experiment_name}_{cfg.file_pt}.png")
+    output_dir = Path(f"outputs/plots/{cfg.experiment_name}")
+    visualizer.generate_reconstructions(output_dir=output_dir)
+    visualizer.generate_loss_plot(output_dir=output_dir)
 
 if __name__ == "__main__":
     main()

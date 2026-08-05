@@ -17,17 +17,32 @@ LAYERS = [
     "_enc.block3.conv3_3",
     "_enc.block4.conv4_1",
     "_enc.block4.conv4_2",
-    "_enc.block4.conv4_3"
+    "_enc.block4.conv4_3",
+    "_dec.block1.conv5_1",
+    "_dec.block1.conv5_2",
+    "_dec.block1.conv5_3",
+    "_dec.block2.conv6_1",
+    "_dec.block2.conv6_2",
+    "_dec.block2.conv6_3",
+    "_dec.block3.conv7_1",
+    "_dec.block3.conv7_2",
+    "_dec.block3.conv7_3",
+    "_dec.block4.conv8_1",
+    "_dec.block4.conv8_2"
 ]
 
 BLOCK_LAYERS = {
         "b1_out": "_enc.block1.conv1_2",
         "b2_out": "_enc.block2.conv2_3",
         "b3_out": "_enc.block3.conv3_3",
-        "b4_out": "_enc.block4.conv4_3"
+        "b4_out": "_enc.block4.conv4_3",
+        "b5_out": "_dec.block1.conv5_3",
+        "b6_out": "_dec.block2.conv6_3",
+        "b7_out": "_dec.block3.conv7_3",
+        "b8_out": "_dec.block4.conv8_2"
     }
 
-SEEDS = range(10)
+SEEDS = list(range(10))
 
 def get_activation(activation: str = 'relu'):
     activations = {

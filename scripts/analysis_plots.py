@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
 
-    OPTIMIZERS = {"adamw", "adam_atan2", "sgd"}
+    OPTIMIZERS = {"adam", "adamw", "adam_atan2", "sgd"}
     optim_pairs = list(product(OPTIMIZERS, repeat=2))
     optim_combs = list(combinations(OPTIMIZERS, r=2))
 
@@ -34,8 +34,7 @@ def main(cfg: DictConfig):
         "mds": "Multi-Dimensional Scaling",
         "isomap": "Isomap"
     }
-    
-    PLOT_DIR = "plots"
+    PLOT_DIR = "outputs/plots/analysis_plots"
 
     """
     File conventions:

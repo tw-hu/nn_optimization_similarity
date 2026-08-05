@@ -69,14 +69,14 @@ def main(cfg: DictConfig):
         lr=cfg.optimizer.lr,
         weight_decay=cfg.optimizer.weight_decay,
     )
-    scheduler = CosineAnnealingLR(optimizer, T_max=(cfg.optimizer.epochs if cfg.mode=="train" else 2))
+    scheduler = CosineAnnealingLR(optimizer, T_max=(cfg.optimizer.epochs if cfg.mode.mode=="train" else 2))
 
     # Training loop
     def on_epoch_end(epoch: int, metrics: dict) -> None:
         """calls logger on epoch end"""
         if wandb_run is not None:
             wandb.log(metrics, step=epoch)
-
+            
     trainer = ConvTrainer(
         model=model,
         optimizer=optimizer,
@@ -84,7 +84,7 @@ def main(cfg: DictConfig):
         train_loader=train_loader,
         val_loader=val_loader,
         device=device,
-        epochs=(cfg.optimizer.epochs if cfg.mode=="train" else 2),
+        epochs=(cfg.optimizer.epochs if cfg.mode.mode=="train" else 2),
         output_dir=output_dir,
         amp=cfg.mode.training.amp,
         log_every=cfg.mode.training.log_every,

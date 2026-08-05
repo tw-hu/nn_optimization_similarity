@@ -18,7 +18,7 @@ experiment_name: ${mode.mode}mode_run_optimizer_${optimizer.name}_seed${seed}
 experiment_dir: experiments/${experiment_name}
 
 # Similarity Analysis
-state: final # final or epoch
+state: all # all or epoch_n
 
 net_1:
   optimizer: adam_atan2

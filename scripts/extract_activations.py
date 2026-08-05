@@ -1,7 +1,7 @@
 """Script to extract activations from trained neural networks
 
 Usage:
-python scripts/extract_activations.py path_to_pt
+python scripts/extract_activations.py
 """
 
 from pathlib import Path
@@ -9,7 +9,6 @@ import logging
 
 import torch
 import hydra
-from omegaconf import OmegaConf, DictConfig
 from omegaconf import OmegaConf, DictConfig
 
 from payload.analysis.ActivationCollector import ActivationCollector
@@ -34,14 +33,13 @@ def main(cfg: DictConfig):
 
     logger.info(f"beginning acivation collection...")
 
-    if cfg.state == "final":
-        model_states = ["final"]
-    elif cfg.state == "epoch":
+    if cfg.state == "all":
         opt_path = Path(f"configs/optimizer/{cfg.optimizer.name}.yaml")
         epochs = OmegaConf.load(opt_path).epochs if cfg.mode.mode == "train" else 2
-        model_states = ["init"]
-        for n in range(0, epochs, int(epochs/20.)):
+        for n in range(0, epochs + 1, 5):
             model_states.append(f"epoch_{n}")
+    else:
+        model_states = [cfg.state]
 
     for s in model_states:
         logger.info(f"working on state {s}...")
